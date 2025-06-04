@@ -1,0 +1,90 @@
+import { create } from "zustand";
+import { Messages } from "../types/apiType";
+import {
+  getHistoryMessage,
+  getReadCount,
+  sendMessage,
+  recallMessage,
+} from "../lib/api/message-api";
+
+type Store = {
+  messageMap: Map<string, Messages>;
+  messageOrder: string[]; // 存儲訊息的 ID 順序
+  readCount: number;
+};
+
+type Action = {
+  getHistoryMessage: (chatroom_id: string) => Promise<void>;
+  sendMessage: (
+    chatroom_id: string,
+    user_id: string,
+    content: string,
+    type: string,
+    reply_to?: string
+  ) => Promise<void>;
+  recallMessage: (message_id: string) => Promise<void>;
+  getReadCount: (message_id: string) => Promise<void>;
+};
+
+const useMessageStore = create<Store & Action>((set, get) => ({
+  messageMap: new Map<string, Messages>(),
+  messageOrder: [],
+  readCount: 0,
+
+  getHistoryMessage: async (chatroom_id: string) => {
+    try {
+      const messages = await getHistoryMessage(chatroom_id);
+      set({
+        messageMap: new Map(
+          messages.map((message: Messages) => [message._id, message])
+        ),
+        messageOrder: messages.map((message: Messages) => message._id),
+      });
+    } catch (error) {
+      console.error("取得歷史訊息失敗:", error);
+    }
+  },
+  sendMessage: async (chatroom_id, user_id, content, type, reply_to) => {
+    try {
+      const newMessage = await sendMessage({
+        chatroom_id,
+        user_id,
+        content,
+        type,
+        reply_to,
+      });
+      set({
+        messageMap: get().messageMap.set(newMessage._id, newMessage),
+        messageOrder: [...get().messageOrder, newMessage._id],
+      });
+    } catch (error) {
+      console.error("發送訊息失敗:", error);
+    }
+  },
+  getReadCount: async (message_id: string) => {
+    try {
+      const readCount = await getReadCount(message_id);
+      set({ readCount });
+    } catch (error) {
+      console.error("取得已讀數失敗:", error);
+    }
+  },
+  recallMessage: async (message_id: string) => {
+    try {
+      const updatedMessage = await recallMessage(message_id);
+      set({
+        messageMap: get().messageMap.set(updatedMessage._id, updatedMessage),
+        messageOrder: get().messageOrder.map((id) => {
+          if (id === message_id) {
+            return updatedMessage._id;
+          }
+          return id;
+        }),
+      });
+    } catch (error) {
+      console.error("撤回訊息失敗:", error);
+    }
+  },
+}));
+
+export default useMessageStore;

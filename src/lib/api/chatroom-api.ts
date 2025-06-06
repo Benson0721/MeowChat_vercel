@@ -1,13 +1,14 @@
 import { axiosInstance } from "./axios-config.ts";
 
 export const getChatrooms = async (user_id: string) => {
-  try {
-    const chatrooms = await axiosInstance.get(`/api/chatroom/${user_id}`);
-    return chatrooms.data;
-  } catch (error) {
-    console.error("伺服器錯誤:", error.message);
-    throw error;
-  }
+  console.log(user_id);
+  const chatrooms = await axiosInstance.get(`/api/chatroom/`, {
+    params: {
+      user_id,
+    },
+  });
+  console.log(chatrooms.data);
+  return chatrooms.data;
 };
 
 export const createChatroom = async ({
@@ -21,16 +22,11 @@ export const createChatroom = async ({
   avatar: string;
   name: string;
 }) => {
-  try {
-    const chatroom = await axiosInstance.post("/api/chatroom", {
-      type,
-      members,
-      avatar,
-      name,
-    });
-    return chatroom.data;
-  } catch (error) {
-    console.error("伺服器錯誤:", error.message);
-    throw error;
-  }
+  const chatroom = await axiosInstance.post("/api/chatroom", {
+    type,
+    members,
+    avatar,
+    name,
+  });
+  return chatroom.data;
 };

@@ -4,61 +4,81 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import useUserStore from "../stores/user-store";
 import { Cat, Eye, EyeOff } from "lucide-react";
+import { useForm, SubmitHandler } from "react-hook-form";
+
+interface Inputs {
+  username: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
 
 const Register = () => {
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const signupHandler = useUserStore((state) => state.signupHandler);
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<Inputs>();
+
+  const validation = {
+    username: {
+      required: true,
+      minLength: {
+        value: 3,
+        message: "Username must be at least 3 characters long",
+      },
+      maxLength: {
+        value: 12,
+        message: "Username must be at most 12 characters long",
+      },
+    },
+    email: {
+      required: true,
+      pattern: {
+        value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+        message: "Please enter a valid email address",
+      },
+    },
+    password: {
+      required: true,
+      minLength: {
+        value: 6,
+        message: "Password must be at least 6 characters long",
+      },
+      maxLength: {
+        value: 12,
+        message: "Password must be at most 12 characters long",
+      },
+    },
+    confirmPassword: {
+      required: true,
+      validate: (value: string) =>
+        value === watch("password") || "Passwords do not match",
+    },
+  };
+
+  const handleRegister: SubmitHandler<Inputs> = async (data: Inputs) => {
     setError("");
     setIsLoading(true);
-
-    // Validation
-    if (!username.trim()) {
-      setError("Username is required");
-      setIsLoading(false);
-      return;
-    }
-    if (!email.trim()) {
-      setError("Email is required");
-      setIsLoading(false);
-      return;
-    }
-    if (!email.includes("@")) {
-      setError("Please enter a valid email address");
-      setIsLoading(false);
-      return;
-    }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long");
-      setIsLoading(false);
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      setIsLoading(false);
-      return;
-    }
-
-    // Simulate API call
-    setTimeout(() => {
-      // Store user info in localStorage for demo
-      localStorage.setItem(
-        "meowchat_user",
-        JSON.stringify({ username, email })
-      );
+    console.log(errors);
+    try {
+      await signupHandler(data.email, data.password, data.username);
       navigate("/chat");
+    } catch (err: any) {
+      setError("Register failed! Please try again!");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -75,7 +95,7 @@ const Register = () => {
         </CardHeader>
 
         <CardContent>
-          <form onSubmit={handleRegister} className="space-y-4">
+          <form onSubmit={handleSubmit(handleRegister)} className="space-y-4">
             {error && (
               <Alert className="border-red-200 bg-red-50">
                 <AlertDescription className="text-red-800">
@@ -83,44 +103,64 @@ const Register = () => {
                 </AlertDescription>
               </Alert>
             )}
-
             <div className="space-y-2">
-              <label className="text-sm font-medium text-purple-900">
+              <label
+                htmlFor="username"
+                className="text-sm font-medium text-purple-900"
+              >
                 Username
               </label>
               <Input
+                id="username"
                 type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                {...register("username", validation.username)}
                 placeholder="Choose a username"
-                className="border-meow-purple/30 text-purple-500 placeholder:text-purple-300 focus-visible:ring-purple-600"
+                className="border-meow-purple/30 text-purple-500 placeholder:text-purple-300 focus-visible:ring-purple-300"
                 disabled={isLoading}
+                aria-invalid={errors.username ? "true" : "false"}
               />
+              {errors.username && (
+                <p role="alert" className="text-red-300 text-sm">
+                  {errors.username.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-purple-900">
+              <label
+                htmlFor="email"
+                className="text-sm font-medium text-purple-900"
+              >
                 Email
               </label>
               <Input
+                id="email"
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                {...register("email", validation.email)}
                 placeholder="Enter your email"
                 className="border-meow-purple/30 text-purple-500 placeholder:text-purple-300 focus-visible:ring-purple-300"
                 disabled={isLoading}
+                aria-invalid={errors.email ? "true" : "false"}
               />
+              {errors.email && (
+                <p role="alert" className="text-red-300 text-sm">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-purple-900">
+              <label
+                htmlFor="password"
+                className="text-sm font-medium text-purple-900"
+              >
                 Password
               </label>
               <div className="relative">
                 <Input
+                  id="password"
                   type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  {...register("password", validation.password)}
                   placeholder="Create a password"
                   className="border-meow-purple/30 text-purple-500 placeholder:text-purple-300 focus-visible:ring-purple-300 pr-10"
                   disabled={isLoading}
@@ -129,7 +169,7 @@ const Register = () => {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  className="absolute right-0 top-0 h-full px-3 hover:cursor-pointer hover:bg-violet-50"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
@@ -139,26 +179,35 @@ const Register = () => {
                   )}
                 </Button>
               </div>
+              {errors.password && (
+                <p role="alert" className="text-red-300 text-sm">
+                  {errors.password.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-purple-900">
+              <label
+                htmlFor="confirmPassword"
+                className="text-sm font-medium text-purple-900"
+              >
                 Confirm Password
               </label>
               <div className="relative">
                 <Input
+                  id="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  {...register("confirmPassword", validation.confirmPassword)}
                   placeholder="Confirm your password"
                   className="border-meow-purple/30 text-purple-500 placeholder:text-purple-300 focus-visible:ring-purple-300 pr-10"
                   disabled={isLoading}
+                  aria-invalid={errors.confirmPassword ? "true" : "false"}
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  className="absolute right-0 top-0 h-full px-3 hover:cursor-pointer hover:bg-violet-50"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
                   {showConfirmPassword ? (
@@ -168,6 +217,11 @@ const Register = () => {
                   )}
                 </Button>
               </div>
+              {errors.confirmPassword && (
+                <p role="alert" className="text-red-300 text-sm">
+                  {errors.confirmPassword.message}
+                </p>
+              )}
             </div>
 
             <Button

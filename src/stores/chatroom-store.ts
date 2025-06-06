@@ -1,11 +1,12 @@
 import { create } from "zustand";
-import { Messages } from "../types/apiType";
+import { Chatrooms } from "../types/apiType";
+import { persist } from "zustand/middleware";
 import { getChatrooms, createChatroom } from "../lib/api/chatroom-api";
 
 type Store = {
-  chatroomsMap: Map<string, Messages>;
+  chatroomsMap: Map<string, Chatrooms>;
   chatroomsOrder: {
-    public: string[];
+    group: string[];
     private: string[];
     global: string[];
   }; // 存儲訊息的 ID 順序
@@ -21,10 +22,10 @@ type Action = {
   ) => Promise<void>;
 };
 
-const useChatroomStore = create<Store & Action>((set, get) => ({
-  chatroomsMap: new Map<string, Messages>(),
+const useChatroomStore = create<Store & Action>()((set, get) => ({
+  chatroomsMap: new Map<string, Chatrooms>(),
   chatroomsOrder: {
-    public: [],
+    group: [],
     private: [],
     global: [],
   },
@@ -32,27 +33,27 @@ const useChatroomStore = create<Store & Action>((set, get) => ({
   getChatrooms: async (user_id: string) => {
     try {
       const chatrooms = await getChatrooms(user_id);
-      const publicChatrooms = chatrooms.filter(
-        (chatroom: Messages) => chatroom.type === "public"
+      const groupChatrooms = chatrooms.filter(
+        (chatroom: Chatrooms) => chatroom.type === "group"
       );
       const privateChatrooms = chatrooms.filter(
-        (chatroom: Messages) => chatroom.type === "private"
+        (chatroom: Chatrooms) => chatroom.type === "private"
       );
       const globalChatrooms = chatrooms.filter(
-        (chatroom: Messages) => chatroom.type === "global"
+        (chatroom: Chatrooms) => chatroom.type === "global"
       );
       set({
         chatroomsMap: new Map(
-          chatrooms.map((chatroom: Messages) => [chatroom._id, chatroom])
+          chatrooms.map((chatroom: Chatrooms) => [chatroom._id, chatroom])
         ),
         chatroomsOrder: {
-          public: publicChatrooms.map((chatroom: Messages) => chatroom._id),
-          private: privateChatrooms.map((chatroom: Messages) => chatroom._id),
-          global: globalChatrooms.map((chatroom: Messages) => chatroom._id),
+          group: groupChatrooms.map((chatroom: Chatrooms) => chatroom._id),
+          private: privateChatrooms.map((chatroom: Chatrooms) => chatroom._id),
+          global: globalChatrooms.map((chatroom: Chatrooms) => chatroom._id),
         },
       });
     } catch (error) {
-      console.error("取得歷史訊息失敗:", error);
+      console.error("取得聊天室失敗:", error);
     }
   },
   newChatroom: async (type, members, avatar, name) => {

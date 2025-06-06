@@ -1,48 +1,44 @@
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Cat, Eye, EyeOff } from "lucide-react";
+import { useForm, SubmitHandler } from "react-hook-form";
+import useUserStore from "../stores/user-store";
 
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Cat, Eye, EyeOff } from 'lucide-react';
+interface Inputs {
+  email: string;
+  password: string;
+}
 
 const Login = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  const loginHandler = useUserStore((state) => state.loginHandler);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<Inputs>();
+  const handleLogin: SubmitHandler<Inputs> = async (data: Inputs) => {
+    setError("");
     setIsLoading(true);
-
-    // Basic validation
-    if (!username.trim()) {
-      setError('Username is required');
-      setIsLoading(false);
-      return;
-    }
-    if (!password) {
-      setError('Password is required');
-      setIsLoading(false);
-      return;
-    }
-
-    // Simulate API call
-    setTimeout(() => {
-      if (username === 'admin' && password === 'password') {
-        // Store user info in localStorage for demo
-        localStorage.setItem('meowchat_user', JSON.stringify({ username }));
-        navigate('/chat');
+    try {
+      await loginHandler(data.email, data.password);
+      navigate("/chat");
+    } catch (error) {
+      if (error.response.status === 401) {
+        setError("email or password is incorrect");
       } else {
-        setError('Invalid username or password');
+        setError("login failed");
       }
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -57,38 +53,54 @@ const Login = () => {
           </CardTitle>
           <p className="text-purple-600">Sign in to start chatting</p>
         </CardHeader>
-        
+
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleSubmit(handleLogin)} className="space-y-4">
             {error && (
               <Alert className="border-red-200 bg-red-50">
-                <AlertDescription className="text-red-800">{error}</AlertDescription>
+                <AlertDescription className="text-red-800">
+                  {error}
+                </AlertDescription>
               </Alert>
             )}
-            
+            {errors.email && (
+              <p role="alert" className="text-red-300 text-sm">
+                {errors.email.message}
+              </p>
+            )}
+
             <div className="space-y-2">
-              <label className="text-sm font-medium text-purple-900">Username</label>
+              <label htmlFor="email" className="text-sm font-medium text-purple-900">
+                Email
+              </label>
               <Input
+                id="email"
                 type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter your username"
+                {...register("email", { required: true })}
+                placeholder="Enter your email"
                 className="border-meow-purple/30 focus-visible:ring-purple-300"
                 disabled={isLoading}
               />
             </div>
-            
+
             <div className="space-y-2">
-              <label className="text-sm font-medium text-purple-900">Password</label>
+              <label htmlFor="password" className="text-sm font-medium text-purple-900">
+                Password
+              </label>
               <div className="relative">
                 <Input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  {...register("password", { required: true })}
                   placeholder="Enter your password"
                   className="border-meow-purple/30 focus-visible:ring-purple-300 pr-10"
                   disabled={isLoading}
                 />
+                {errors.password && (
+                  <p role="alert" className="text-red-300 text-sm">
+                    {errors.password.message}
+                  </p>
+                )}
                 <Button
                   type="button"
                   variant="ghost"
@@ -96,24 +108,31 @@ const Login = () => {
                   className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
                 </Button>
               </div>
             </div>
-            
+
             <Button
               type="submit"
               className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl"
               disabled={isLoading}
             >
-              {isLoading ? 'Signing in...' : 'Sign In'}
+              {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
-          
+
           <div className="mt-6 text-center">
             <p className="text-purple-600">
-              Don't have an account?{' '}
-              <Link to="/register" className="text-purple-700 font-medium hover:underline">
+              Don't have an account?{" "}
+              <Link
+                to="/register"
+                className="text-purple-700 font-medium hover:underline"
+              >
                 Sign up
               </Link>
             </p>

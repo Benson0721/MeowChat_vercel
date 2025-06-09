@@ -85,7 +85,7 @@ const useUserStore = create<Store & Action>()(
 
       logoutHandler: async () => {
         try {
-          await logout();
+          await logout(get().user._id);
           set({
             user: { _id: "", username: "", avatar: "", status: "offline" },
             isLogin: false,

@@ -9,7 +9,7 @@ import useChatroomStore from "@/stores/chatroom-store";
 import useUserStore from "@/stores/user-store";
 
 const Chat = () => {
-  const [currentChat, setCurrentChat] = useState("global");
+  //const [currentChat, setCurrentChat] = useState("global");
   const [showUserPanel, setShowUserPanel] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
@@ -66,8 +66,9 @@ const Chat = () => {
   const navigate = useNavigate();
 
   const user = useUserStore((state) => state.user);
-
+  const getOtherUsers = useUserStore((state) => state.getOtherUsers);
   const getChatrooms = useChatroomStore((state) => state.getChatrooms);
+  const setCurrentChat = useChatroomStore((state) => state.setCurrentChat);
 
   useEffect(() => {
     // Check if user is logged in
@@ -77,13 +78,15 @@ const Chat = () => {
   }, [navigate]);
 
   useEffect(() => {
-    const getUser = async () => {
+    const fetchAllList = async () => {
       await getChatrooms(user._id);
+      await getOtherUsers(user._id);
     };
-    getUser();
+    fetchAllList();
   }, [user]);
 
   const handleStartPrivateChat = (userId: string, username: string) => {
+    /*
     const chatId = `dm-${userId}`;
 
     // Check if chat already exists
@@ -99,13 +102,14 @@ const Chat = () => {
       };
       setPrivateChats((prev) => [...prev, newPrivateChat]);
     }
-
-    setCurrentChat(chatId);
+    setCurrentChat(username, chatId);
     setShowUserPanel(false);
+   
+  */ console.log("fake start private chat");
   };
 
   const handleCreateGroup = (groupName: string, emoji: string) => {
-    const groupId = `group-${Date.now()}`;
+    /*const groupId = `group-${Date.now()}`;
     const newGroup = {
       id: groupId,
       name: groupName,
@@ -113,34 +117,31 @@ const Chat = () => {
       unread: 0,
       members: ["you"], // In a real app, this would be managed properly
     };
-    setCurrentChat(groupId);
-    setShowCreateGroupModal(false);
+    setCurrentChat(newGroup);
+    setShowCreateGroupModal(false);*/
+    console.log("fake create group");
   };
 
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-meow-cream">
         <ChatSidebar
-          currentChat={currentChat}
-          onChatSelect={setCurrentChat}
           collapsed={sidebarCollapsed}
           onToggleCollapsed={() => setSidebarCollapsed(!sidebarCollapsed)}
           onCreateGroup={() => setShowCreateGroupModal(true)}
         />
         <ChatArea
-          currentChat={currentChat}
           onToggleUserPanel={() => setShowUserPanel(!showUserPanel)}
           showUserPanel={showUserPanel}
           sidebarCollapsed={sidebarCollapsed}
           customGroups={customGroups}
         />
         {showUserPanel && (
-          <UserPanel onStartPrivateChat={handleStartPrivateChat} />
+          <UserPanel />
         )}
         <CreateGroupModal
           open={showCreateGroupModal}
           onOpenChange={setShowCreateGroupModal}
-          onCreateGroup={handleCreateGroup}
         />
       </div>
     </SidebarProvider>

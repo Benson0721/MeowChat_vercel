@@ -2,8 +2,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Cat, MessageSquare, Users, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
+import useUserStore from "@/stores/user-store";
 
 const Index = () => {
+  const isLogin = useUserStore((state) => state.isLogin);
   return (
     <div className="min-h-screen bg-gradient-to-br from-meow-lavender via-meow-cream to-meow-pink">
       <header className="p-6 flex justify-between items-center">
@@ -54,7 +56,7 @@ const Index = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-            <Link to="/register">
+            <Link to={`/${isLogin ? "chat" : "login"}`}>
               <Button
                 size="lg"
                 className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-2xl px-8 py-6 text-lg font-medium hover-lift paw-cursor"
@@ -63,7 +65,7 @@ const Index = () => {
                 Start Chatting
               </Button>
             </Link>
-            <Link to="/login">
+            <Link to="/register">
               <Button
                 variant="outline"
                 size="lg"

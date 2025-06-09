@@ -5,22 +5,22 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { Chatrooms } from "../../../types/apiType";
+import { Chatroom } from "../../../types/apiType";
+import useChatroomStore from "@/stores/chatroom-store";
+
 interface GroupChatsProps {
-  currentChat: string;
-  onChatSelect: (chatId: string) => void;
   collapsed: boolean;
+  groupChats: Array<Chatroom>;
   onCreateGroup: () => void;
-  groupChats: Array<Chatrooms>;
 }
 
 export default function GroupChats({
-  currentChat,
-  onChatSelect,
   collapsed,
-  onCreateGroup,
   groupChats,
+  onCreateGroup,
 }: GroupChatsProps) {
+  const setCurrentChat = useChatroomStore((state) => state.setCurrentChat);
+  const currentChat = useChatroomStore((state) => state.currentChat);
   return (
     <div>
       {!collapsed && (
@@ -53,21 +53,25 @@ export default function GroupChats({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => onChatSelect(group._id)}
+                    onClick={() => setCurrentChat(group)}
                     className={`w-full h-12 p-0 rounded-xl hover:bg-meow-purple/50 transition-all duration-200 ${
-                      currentChat === group._id
-                        ? "bg-meow-purple text-purple-800"
-                        : ""
+                      currentChat?._id === group?._id ? "bg-meow-lavender" : ""
                     }`}
-                  ></Button>
+                  >
+                    <div className="relative">
+                      <span className="w-8 h-8 rounded-full flex items-center justify-center">
+                        <span className="text-lg">{group?.avatar}</span>
+                      </span>
+                    </div>
+                  </Button>
                 </TooltipTrigger>
-                <TooltipContent side="right">{group.name}</TooltipContent>
+                <TooltipContent side="right">{group?.name}</TooltipContent>
               </Tooltip>
             ) : (
               <button
-                onClick={() => onChatSelect(group._id)}
+                onClick={() => setCurrentChat(group)}
                 className={`flex items-center gap-3 w-full p-3 rounded-xl hover:bg-meow-purple/50 transition-all duration-200 ${
-                  currentChat === group._id
+                  currentChat?._id === group?._id
                     ? "bg-meow-purple text-purple-800"
                     : ""
                 }`}

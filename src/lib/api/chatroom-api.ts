@@ -22,11 +22,13 @@ export const createChatroom = async ({
   avatar: string;
   name: string;
 }) => {
+  console.log("Creating chatroom...");
   const chatroom = await axiosInstance.post("/api/chatroom", {
     type,
     members,
     avatar,
     name,
   });
+  console.log(chatroom.data);
   return chatroom.data;
 };

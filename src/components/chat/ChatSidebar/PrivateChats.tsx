@@ -3,23 +3,33 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Chatrooms } from "../../../types/apiType";
+import { Chatroom } from "../../../types/apiType";
+import useUserStore from "../../../stores/user-store";
+import useChatroomStore from "../../../stores/chatroom-store";
 
 interface PrivateChatsProps {
-  privateChats: Array<Chatrooms>;
-  currentChat: string;
-  onChatSelect: (chatId: string) => void;
+  privateChats: Array<Chatroom>;
   collapsed: boolean;
 }
 
 export default function PrivateChats({
   privateChats,
-  currentChat,
-  onChatSelect,
   collapsed,
 }: PrivateChatsProps) {
+  const setCurrentChat = useChatroomStore((state) => state.setCurrentChat);
+  const currentChat = useChatroomStore((state) => state.currentChat);
+  const otherUser = useUserStore((state) => state.otherUsersMap);
+  const user = useUserStore((state) => state.user);
+
+  privateChats.map((chat) => {
+    chat.members = chat.members.filter((member) => member !== user._id);
+    chat.name = otherUser.get(chat.members[0])?.username;
+    return chat;
+  });
+
   return (
     <div>
       {!collapsed && (
@@ -28,78 +38,79 @@ export default function PrivateChats({
         </h3>
       )}
       <div className="space-y-1">
-        {privateChats.map((chat) => (
-          <div key={chat.id}>
+        {privateChats.map((privateChat) => (
+          <div key={privateChat._id}>
             {collapsed ? (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => onChatSelect(chat.id)}
+                    onClick={() => setCurrentChat(privateChat)}
                     className={`w-full h-12 p-0 rounded-xl hover:bg-meow-purple/50 transition-all duration-200 ${
-                      currentChat === chat.id
+                      currentChat._id === privateChat._id
                         ? "bg-meow-purple text-purple-800"
                         : ""
                     }`}
                   >
                     <div className="relative">
                       <Avatar className="w-6 h-6">
-                        <AvatarImage src={dm.avatar} />
+                        <AvatarImage src={privateChat.avatar} />
                         <AvatarFallback className="bg-meow-pink text-purple-800 text-xs">
-                          {dm.name
-                            .split(" ")
+                          {otherUser
+                            .get(privateChat.members[0])
+                            ?.username.split(" ")
                             .map((n) => n[0])
                             .join("")}
                         </AvatarFallback>
                       </Avatar>
                       <div
                         className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white ${
-                          dm.status === "online"
+                          otherUser.get(privateChat.members[0])?.status ===
+                          "online"
                             ? "bg-green-500"
-                            : dm.status === "away"
-                            ? "bg-white"
-                            : "bg-gray-400"
+                            : "bg-gray-300"
                         }`}
                       />
                     </div>
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="right">{dm.name}</TooltipContent>
+                <TooltipContent side="right">{privateChat.name}</TooltipContent>
               </Tooltip>
             ) : (
               <button
-                onClick={() => onChatSelect(dm.id)}
+                onClick={() => setCurrentChat(privateChat)}
                 className={`flex items-center gap-3 w-full p-3 rounded-xl hover:bg-meow-purple/50 transition-all duration-200 ${
-                  currentChat === dm.id ? "bg-meow-purple text-purple-800" : ""
+                  currentChat._id === privateChat._id
+                    ? "bg-meow-purple text-purple-800"
+                    : ""
                 }`}
               >
                 <div className="relative">
                   <Avatar className="w-8 h-8">
-                    <AvatarImage src={dm.avatar} />
+                    <AvatarImage src={privateChat.avatar} />
                     <AvatarFallback className="bg-meow-pink text-purple-800 text-sm">
-                      {dm.name
-                        .split(" ")
+                      {otherUser
+                        .get(privateChat.members[0])
+                        ?.username.split(" ")
                         .map((n) => n[0])
                         .join("")}
                     </AvatarFallback>
                   </Avatar>
                   <div
-                    className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
-                      dm.status === "online"
+                    className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white ${
+                      otherUser.get(privateChat.members[0])?.status === "online"
                         ? "bg-green-500"
-                        : dm.status === "away"
-                        ? "bg-white"
-                        : "bg-gray-400"
+                        : "bg-gray-300"
                     }`}
                   />
                 </div>
-                <span className="font-medium text-sm">{dm.name}</span>
-                {dm.unread > 0 && (
+                <span className="font-medium text-sm">{privateChat.name}</span>
+                {/*{chat.unread > 0 && (
                   <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
-                    {dm.unread}
+                    {chat.unread}
                   </span>
-                )}
+                )}*/}
               </button>
             )}
           </div>

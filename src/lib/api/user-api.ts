@@ -46,7 +46,6 @@ export const signup = async (
 };
 
 export const login = async (email: string, password: string): Promise<User> => {
-  console.log("前端")
   const res = await axiosInstance.post("/api/user/login", {
     email,
     password,
@@ -54,7 +53,11 @@ export const login = async (email: string, password: string): Promise<User> => {
   return res.data;
 };
 
-export const logout = async (): Promise<void> => {
-  const res = await axiosInstance.post("/api/user/logout");
+export const logout = async (user_id: string): Promise<void> => {
+  const res = await axiosInstance.get("/api/user/logout", {
+    params: {
+      user_id,
+    },
+  });
   return res.data;
 };

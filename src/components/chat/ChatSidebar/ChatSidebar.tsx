@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Plus,
   Globe,
+  LogOut,
 } from "lucide-react";
 import {
   Sidebar,
@@ -39,23 +40,22 @@ import useChatroomStore from "@/stores/chatroom-store";
 import GroupChats from "./GroupChats";
 import GlobalChat from "./GlobalChat";
 import PrivateChats from "./PrivateChats";
+import useUserStore from "@/stores/user-store";
+import LogoutDialog from "../../LogoutDialog";
 
 interface ChatSidebarProps {
-  currentChat: string;
-  onChatSelect: (chatId: string) => void;
   collapsed: boolean;
   onToggleCollapsed: () => void;
   onCreateGroup: () => void;
 }
 
 export function ChatSidebar({
-  currentChat,
-  onChatSelect,
   collapsed,
   onToggleCollapsed,
   onCreateGroup,
 }: ChatSidebarProps) {
   const navigate = useNavigate();
+  const user = useUserStore((state) => state.user);
   const chatroomsMap = useChatroomStore((state) => state.chatroomsMap);
   const chatroomsOrder = useChatroomStore((state) => state.chatroomsOrder);
   const [groupChats, setGroupChats] = useState([]);
@@ -63,18 +63,21 @@ export function ChatSidebar({
   const [globalChats, setGlobalChats] = useState([]);
 
   useEffect(() => {
-    setGroupChats(
-      chatroomsOrder.group.map((chatroom) => chatroomsMap.get(chatroom))
-    );
-    setPrivateChats(
-      chatroomsOrder.private.map((chatroom) => chatroomsMap.get(chatroom))
-    );
-    setGlobalChats(
-      chatroomsOrder.global.map((chatroom) => chatroomsMap.get(chatroom))
-    );
-    console.log(groupChats);
-    console.log(privateChats);
-    console.log(globalChats);
+    if (chatroomsOrder.group.length > 0) {
+      setGroupChats(
+        chatroomsOrder.group.map((chatroom) => chatroomsMap.get(chatroom))
+      );
+    }
+    if (chatroomsOrder.private.length > 0) {
+      setPrivateChats(
+        chatroomsOrder.private.map((chatroom) => chatroomsMap.get(chatroom))
+      );
+    }
+    if (chatroomsOrder.global.length > 0) {
+      setGlobalChats(
+        chatroomsOrder.global.map((chatroom) => chatroomsMap.get(chatroom))
+      );
+    }
   }, [chatroomsOrder]);
 
   return (
@@ -100,7 +103,10 @@ export function ChatSidebar({
 
         <div className="h-full flex flex-col">
           {/* Header */}
-          <div className="p-4 border-b border-meow-purple/20">
+          <div
+            className="p-4 border-b border-meow-purple/20 hover:cursor-pointer"
+            onClick={() => navigate("/")}
+          >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center flex-shrink-0">
                 <span className="text-xl">🐱</span>
@@ -119,18 +125,11 @@ export function ChatSidebar({
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-4 space-y-6">
             {/* Global Chat */}
-            <GlobalChat
-              currentChat={currentChat}
-              onChatSelect={onChatSelect}
-              collapsed={collapsed}
-              globalChat={globalChats?.[0]}
-            />
+            <GlobalChat collapsed={collapsed} globalChat={globalChats?.[0]} />
             {!collapsed && <Separator className="bg-meow-purple/20" />}
 
             {/* Chat Groups */}
             <GroupChats
-              currentChat={currentChat}
-              onChatSelect={onChatSelect}
               collapsed={collapsed}
               onCreateGroup={onCreateGroup}
               groupChats={groupChats}
@@ -138,12 +137,7 @@ export function ChatSidebar({
             {!collapsed && <Separator className="bg-meow-purple/20" />}
 
             {/* Direct Messages */}
-            <PrivateChats
-              currentChat={currentChat}
-              onChatSelect={onChatSelect}
-              collapsed={collapsed}
-              privateChats={privateChats}
-            />
+            <PrivateChats collapsed={collapsed} privateChats={privateChats} />
           </div>
 
           {/* Footer */}
@@ -159,7 +153,7 @@ export function ChatSidebar({
                       <Avatar className="w-10 h-10">
                         <AvatarImage src="https://images.unsplash.com/photo-1582562124811-c09040d0a901?w=100&h=100&fit=crop&crop=faces" />
                         <AvatarFallback className="bg-meow-purple text-purple-800">
-                          You
+                          {user?.username}
                         </AvatarFallback>
                       </Avatar>
                     </button>
@@ -171,17 +165,24 @@ export function ChatSidebar({
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => navigate("/profile")}
-                  className="hover:opacity-80 transition-opacity"
+                  className="relative hover:opacity-80 transition-opacity"
                 >
                   <Avatar className="w-10 h-10">
                     <AvatarImage src="https://images.unsplash.com/photo-1582562124811-c09040d0a901?w=100&h=100&fit=crop&crop=faces" />
                     <AvatarFallback className="bg-meow-purple text-purple-800">
-                      You
+                      {user?.username}
                     </AvatarFallback>
                   </Avatar>
+                  <div
+                    className={`absolute -bottom-0.5 -right-1 w-3 h-3 rounded-full border border-white ${
+                      user?.status === "online" ? "bg-green-500" : "bg-gray-300"
+                    }`}
+                  />
                 </button>
                 <div className="flex-1">
-                  <p className="font-medium text-purple-900 text-sm">You</p>
+                  <p className="font-medium text-purple-900 text-sm">
+                    {user?.username}
+                  </p>
                   <p className="text-xs text-purple-600">Online</p>
                 </div>
                 <Button
@@ -191,6 +192,7 @@ export function ChatSidebar({
                 >
                   <Settings className="w-4 h-4" />
                 </Button>
+                <LogoutDialog />
               </div>
             )}
           </div>

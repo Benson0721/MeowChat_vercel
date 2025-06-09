@@ -4,39 +4,39 @@
 
 @layer base {
   :root {
-    --foreground: 51 37 73;
+    --foreground: 271 81 56;
+    --background: 0 0 100;
+    --card: 0 0 100;
+    --card-foreground: 271 81 56;
 
-    --card: 255 255 255;
-    --card-foreground: 51 37 73;
-
-    --popover: 255 255 255;
-    --popover-foreground: 51 37 73;
+    --popover: 0 0 100;
+    --popover-foreground: 271 81 56;
 
     --primary: 147 51 234;
-    --primary-foreground: 255 255 255;
+    --primary-foreground: 0 0 100;
 
-    --secondary: 240 230 255;
-    --secondary-foreground: 91 33 182;
+    --secondary: 0 0 100;
+    --secondary-foreground: 0 0 0;
 
     --muted: 245 240 255;
     --muted-foreground: 139 113 185;
 
-    --accent: 232 213 255;
+    --accent: 267 100 92;
     --accent-foreground: 91 33 182;
 
     --destructive: 239 68 68;
-    --destructive-foreground: 255 255 255;
+    --destructive-foreground: 0 0 100;
 
-    --border: 232 213 255;
-    --input: 232 213 255;
-    --ring: 147 51 234;
+    --border: 271 81 56;
+    --input: 271 81 56;
+    --ring: 271 81 56;
 
     --radius: 1rem;
 
     --sidebar-background: 248 245 255;
     --sidebar-foreground: 91 33 182;
     --sidebar-primary: 147 51 234;
-    --sidebar-primary-foreground: 255 255 255;
+    --sidebar-primary-foreground: 0 0 100;
     --sidebar-accent: 240 230 255;
     --sidebar-accent-foreground: 91 33 182;
     --sidebar-border: 232 213 255;
@@ -46,11 +46,10 @@
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border outline-ring/50;
   }
-
   body {
-    @apply bg-background text-foreground font-inter;
+    @apply text-foreground font-inter;
   }
 }
 
@@ -60,7 +59,7 @@
   }
 
   .chat-bubble-me {
-    @apply bg-meow-purple text-purple-800 ml-auto;
+    @apply bg-meow-purple text-foreground ml-auto;
   }
 
   .chat-bubble-other {

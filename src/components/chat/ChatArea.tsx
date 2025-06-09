@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Users, Hash, Send, Paperclip, MoreVertical } from "lucide-react";
 import { ChatMessage } from "./ChatMessage";
 import { EmojiStickerPicker } from "./EmojiStickerPicker";
-import { OnlineUsersList } from "./OnlineUsersList";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import useChatroomStore from "@/stores/chatroom-store";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import useUserStore from "@/stores/user-store";
 
 interface ChatAreaProps {
-  currentChat: string;
   onToggleUserPanel: () => void;
   showUserPanel: boolean;
   sidebarCollapsed: boolean;
@@ -92,15 +93,36 @@ const getChatTitle = (
 };
 
 export function ChatArea({
-  currentChat,
   onToggleUserPanel,
   showUserPanel,
   sidebarCollapsed,
   customGroups,
 }: ChatAreaProps) {
+  const currentChat = useChatroomStore((state) => state.currentChat);
+  const otherUser = useUserStore((state) => state.otherUsersMap);
+  const user = useUserStore((state) => state.user);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState(mockMessages);
-  const chatInfo = getChatTitle(currentChat, customGroups);
+  const chatInfo = getChatTitle(currentChat?._id || "", customGroups);
+  const [chatName, setChatName] = useState(currentChat?.name || "");
+  const [currentPrivate, setCurrentPrivate] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!currentChat?.name) return;
+    const nameInitials = currentChat.name
+      .split(" ")
+      .map((n) => n[0])
+      .join("");
+    setChatName(nameInitials);
+  }, [currentChat]);
+
+  useEffect(() => {
+    if (currentChat?.type !== "private") return;
+    const privateUser = currentChat.members.find(
+      (member) => member !== user._id
+    );
+    setCurrentPrivate(privateUser || null);
+  }, [currentChat]);
 
   const handleSendMessage = () => {
     if (message.trim()) {
@@ -166,11 +188,6 @@ export function ChatArea({
     );
   };
 
-  const handleStartPrivateChat = (userId: string, username: string) => {
-    console.log("Starting private chat with:", username);
-    // This would typically update the current chat or open a new DM
-  };
-
   return (
     <div
       className={`flex-1 flex flex-col bg-white transition-all duration-300 ease-in-out ${
@@ -183,15 +200,25 @@ export function ChatArea({
           <SidebarTrigger className="lg:hidden" />
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-meow-lavender rounded-full flex items-center justify-center">
-              <span className="text-lg">{chatInfo.icon}</span>
+              <Avatar className="w-6 h-6">
+                <AvatarImage src={currentChat?.avatar} />
+                <AvatarFallback className="bg-meow-pink text-purple-800 text-xs">
+                  {currentChat?.avatar || chatName}
+                </AvatarFallback>
+              </Avatar>
             </div>
             <div>
               <h2 className="font-fredoka font-semibold text-purple-900 text-lg">
-                {chatInfo.name}
+                {currentChat?.name}
               </h2>
-              {chatInfo.members && (
+              {currentChat?.members && currentChat?.type !== "private" && (
                 <p className="text-sm text-purple-600">
-                  {chatInfo.members} members online
+                  {currentChat?.members.length} members online
+                </p>
+              )}
+              {currentChat?.type === "private" && (
+                <p className="text-sm text-purple-600">
+                  {otherUser.get(currentPrivate || "")?.status}
                 </p>
               )}
             </div>

@@ -5,20 +5,17 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Globe } from "lucide-react";
-import { Chatrooms } from "../../../types/apiType";
+import { Chatroom } from "../../../types/apiType";
+import useChatroomStore from "@/stores/chatroom-store";
+
 interface GlobalChatProps {
-  currentChat: string;
-  onChatSelect: (chatId: string) => void;
   collapsed: boolean;
-  globalChat: Chatrooms;
+  globalChat: Chatroom;
 }
 
-export default function GlobalChat({
-  currentChat,
-  onChatSelect,
-  collapsed,
-  globalChat,
-}: GlobalChatProps) {
+export default function GlobalChat({ collapsed, globalChat }: GlobalChatProps) {
+  const setCurrentChat = useChatroomStore((state) => state.setCurrentChat);
+  const currentChat = useChatroomStore((state) => state.currentChat);
   return (
     <div>
       {!collapsed && (
@@ -33,9 +30,9 @@ export default function GlobalChat({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onChatSelect("global")}
+                onClick={() => setCurrentChat(globalChat)}
                 className={`w-full h-12 p-0 rounded-xl hover:bg-meow-purple/50 transition-all duration-200 ${
-                  currentChat === "global"
+                  currentChat?._id === globalChat?._id
                     ? "bg-meow-purple text-purple-800"
                     : ""
                 }`}
@@ -47,9 +44,11 @@ export default function GlobalChat({
           </Tooltip>
         ) : (
           <button
-            onClick={() => onChatSelect("global")}
+            onClick={() => setCurrentChat(globalChat)}
             className={`flex items-center gap-3 w-full p-3 rounded-xl hover:bg-meow-purple/50 transition-all duration-200 ${
-              currentChat === "global" ? "bg-meow-purple text-purple-800" : ""
+              currentChat?._id === globalChat?._id
+                ? "bg-meow-purple text-purple-800"
+                : ""
             }`}
           >
             <Globe className="w-5 h-5 text-blue-500" />

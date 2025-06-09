@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Messages } from "../types/apiType";
+import { Message } from "../types/apiType";
 import {
   getHistoryMessage,
   getReadCount,
@@ -8,7 +8,7 @@ import {
 } from "../lib/api/message-api";
 
 type Store = {
-  messageMap: Map<string, Messages>;
+  messageMap: Map<string, Message>;
   messageOrder: string[]; // 存儲訊息的 ID 順序
   readCount: number;
 };
@@ -27,7 +27,7 @@ type Action = {
 };
 
 const useMessageStore = create<Store & Action>((set, get) => ({
-  messageMap: new Map<string, Messages>(),
+  messageMap: new Map<string, Message>(),
   messageOrder: [],
   readCount: 0,
 
@@ -36,9 +36,9 @@ const useMessageStore = create<Store & Action>((set, get) => ({
       const messages = await getHistoryMessage(chatroom_id);
       set({
         messageMap: new Map(
-          messages.map((message: Messages) => [message._id, message])
+          messages.map((message: Message) => [message._id, message])
         ),
-        messageOrder: messages.map((message: Messages) => message._id),
+        messageOrder: messages.map((message: Message) => message._id),
       });
     } catch (error) {
       console.error("取得歷史訊息失敗:", error);

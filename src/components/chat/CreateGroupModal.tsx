@@ -1,51 +1,59 @@
-
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { EmojiGroupPicker } from './EmojiGroupPicker';
+} from "@/components/ui/dialog";
+import { EmojiGroupPicker } from "./EmojiGroupPicker";
+import useChatroomStore from "@/stores/chatroom-store";
+import useUserStore from "@/stores/user-store";
 
 interface CreateGroupModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreateGroup: (groupName: string, emoji: string) => void;
 }
 
-export function CreateGroupModal({ open, onOpenChange, onCreateGroup }: CreateGroupModalProps) {
-  const [groupName, setGroupName] = useState('');
-  const [selectedEmoji, setSelectedEmoji] = useState('🐱');
-  const [error, setError] = useState('');
+export function CreateGroupModal({
+  open,
+  onOpenChange,
+}: CreateGroupModalProps) {
+  const [groupName, setGroupName] = useState("");
+  const [selectedEmoji, setSelectedEmoji] = useState("🐱");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const createGroup = useChatroomStore((state) => state.createChatroom);
+  const user = useUserStore((state) => state.user);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     if (!groupName.trim()) {
-      setError('Group name is required');
+      setError("Group name is required");
       return;
     }
 
     if (groupName.trim().length < 3) {
-      setError('Group name must be at least 3 characters');
+      setError("Group name must be at least 3 characters");
       return;
     }
-
-    onCreateGroup(groupName.trim(), selectedEmoji);
-    setGroupName('');
-    setSelectedEmoji('🐱');
-    setError('');
+    setIsLoading(true);
+    await createGroup("group", [user._id], selectedEmoji, groupName.trim());
+    setGroupName("");
+    setSelectedEmoji("🐱");
+    setError("");
+    setIsLoading(false);
+    handleClose();
   };
 
   const handleClose = () => {
-    setGroupName('');
-    setSelectedEmoji('🐱');
-    setError('');
+    setGroupName("");
+    setSelectedEmoji("🐱");
+    setError("");
     onOpenChange(false);
   };
 
@@ -67,16 +75,14 @@ export function CreateGroupModal({ open, onOpenChange, onCreateGroup }: CreateGr
             </div>
           </div>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label className="text-purple-700 font-medium">
-              Group Icon
-            </Label>
+            <Label className="text-purple-700 font-medium">Group Icon</Label>
             <div className="flex justify-center">
-              <EmojiGroupPicker 
-                onSelect={setSelectedEmoji} 
-                selectedEmoji={selectedEmoji} 
+              <EmojiGroupPicker
+                onSelect={setSelectedEmoji}
+                selectedEmoji={selectedEmoji}
               />
             </div>
           </div>
@@ -90,7 +96,7 @@ export function CreateGroupModal({ open, onOpenChange, onCreateGroup }: CreateGr
               value={groupName}
               onChange={(e) => {
                 setGroupName(e.target.value);
-                setError('');
+                setError("");
               }}
               placeholder="Enter group name..."
               className="rounded-xl border-meow-purple/20 focus:border-purple-500 focus:ring-purple-500/20"
@@ -98,7 +104,7 @@ export function CreateGroupModal({ open, onOpenChange, onCreateGroup }: CreateGr
             />
             {error && <p className="text-red-500 text-sm">{error}</p>}
           </div>
-          
+
           <div className="flex justify-end gap-3 pt-4">
             <Button
               type="button"

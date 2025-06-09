@@ -5,7 +5,7 @@ export interface User {
   status: string;
 }
 
-export interface Chatrooms {
+export interface Chatroom {
   _id: string;
   type: string;
   avatar: string;
@@ -13,7 +13,7 @@ export interface Chatrooms {
   members: string[];
 }
 
-export interface Messages {
+export interface Message {
   _id: string;
   chatroom_id: string;
   user_id: string;

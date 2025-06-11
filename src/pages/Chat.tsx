@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { ChatSidebar } from "@/components/chat/ChatSidebar/ChatSidebar";
@@ -7,8 +7,10 @@ import { UserPanel } from "@/components/chat/UserPanel";
 import { CreateGroupModal } from "@/components/chat/CreateGroupModal";
 import useChatroomStore from "@/stores/chatroom-store";
 import useUserStore from "@/stores/user-store";
+import SocketContext from "@/hooks/socketManager";
 
 const Chat = () => {
+  const { socket, connectSocket, disconnectSocket } = useContext(SocketContext);
   //const [currentChat, setCurrentChat] = useState("global");
   const [showUserPanel, setShowUserPanel] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -39,36 +41,29 @@ const Chat = () => {
       unread: 0,
     },
   ]);
-  const [privateChats, setPrivateChats] = useState([
-    {
-      id: "dm-alice",
-      name: "Alice Whiskers",
-      avatar:
-        "https://images.unsplash.com/photo-1535268647677-300dbf3d78d1?w=100&h=100&fit=crop&crop=faces",
-      status: "online",
-      unread: 2,
-    },
-    {
-      id: "dm-bob",
-      name: "Bob Mittens",
-      avatar: "",
-      status: "away",
-      unread: 0,
-    },
-    {
-      id: "dm-charlie",
-      name: "Charlie Paws",
-      avatar: "",
-      status: "offline",
-      unread: 5,
-    },
-  ]);
+
   const navigate = useNavigate();
 
   const user = useUserStore((state) => state.user);
   const getOtherUsers = useUserStore((state) => state.getOtherUsers);
   const getChatrooms = useChatroomStore((state) => state.getChatrooms);
-  const setCurrentChat = useChatroomStore((state) => state.setCurrentChat);
+  const setOtherUsers = useUserStore((state) => state.setOtherUsers);
+
+  const fetchAllList = async () => {
+    await getChatrooms(user._id);
+    await getOtherUsers(user._id);
+  };
+
+  const statusHandler = (userId: string, status: string) => {
+    const otherUser = useUserStore.getState().otherUsersMap; //在觸發func時才拿otherUsersMap，避免拿到舊資料
+    if (otherUser.has(userId)) {
+      const newOtherUsers = new Map(otherUser);
+      const user = newOtherUsers.get(userId);
+      user.status = status;
+      newOtherUsers.set(userId, user);
+      setOtherUsers(newOtherUsers);
+    }
+  };
 
   useEffect(() => {
     // Check if user is logged in
@@ -78,12 +73,29 @@ const Chat = () => {
   }, [navigate]);
 
   useEffect(() => {
-    const fetchAllList = async () => {
-      await getChatrooms(user._id);
-      await getOtherUsers(user._id);
+    const startChat = async () => {
+      if (!user) return;
+      console.log("user connected:", user._id);
+      connectSocket(user._id);
+      await fetchAllList();
+      if (!socket) return;
+      socket.on("connect", () => {
+        console.log("Connected to server");
+      });
+      socket.on("user-status-online", (userId: string) => {
+        console.log("user online:", userId);
+        statusHandler(userId, "online");
+      });
+      socket.on("user-status-offline", (userId: string) => {
+        console.log("user offline:", userId);
+        statusHandler(userId, "offline");
+      });
     };
-    fetchAllList();
-  }, [user]);
+    startChat();
+    return () => {
+      disconnectSocket();
+    };
+  }, [user, socket]);
 
   const handleStartPrivateChat = (userId: string, username: string) => {
     /*
@@ -136,9 +148,7 @@ const Chat = () => {
           sidebarCollapsed={sidebarCollapsed}
           customGroups={customGroups}
         />
-        {showUserPanel && (
-          <UserPanel />
-        )}
+        {showUserPanel && <UserPanel />}
         <CreateGroupModal
           open={showCreateGroupModal}
           onOpenChange={setShowCreateGroupModal}

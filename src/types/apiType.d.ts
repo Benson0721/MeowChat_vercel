@@ -16,7 +16,7 @@ export interface Chatroom {
 export interface Message {
   _id: string;
   chatroom_id: string;
-  user_id: string;
+  user: User;
   content: string;
   type: string;
   reply_to: string | null;

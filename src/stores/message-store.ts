@@ -6,6 +6,7 @@ import {
   sendMessage,
   recallMessage,
 } from "../lib/api/message-api";
+import { User } from "../types/apiType";
 
 type Store = {
   messageMap: Map<string, Message>;
@@ -17,19 +18,30 @@ type Action = {
   getHistoryMessage: (chatroom_id: string) => Promise<void>;
   sendMessage: (
     chatroom_id: string,
-    user_id: string,
+    user: string,
     content: string,
     type: string,
     reply_to?: string
-  ) => Promise<void>;
+  ) => Promise<Message>;
   recallMessage: (message_id: string) => Promise<void>;
   getReadCount: (message_id: string) => Promise<void>;
+  handleReceiveMessage: (message: Message) => void;
 };
 
 const useMessageStore = create<Store & Action>((set, get) => ({
   messageMap: new Map<string, Message>(),
   messageOrder: [],
   readCount: 0,
+
+  handleReceiveMessage: (message: Message) => {
+    const newMessageMap = new Map(get().messageMap);
+    newMessageMap.set(message._id, message);
+    const newMessageOrder = [...get().messageOrder, message._id];
+    set({
+      messageMap: newMessageMap,
+      messageOrder: newMessageOrder,
+    });
+  },
 
   getHistoryMessage: async (chatroom_id: string) => {
     try {
@@ -53,10 +65,8 @@ const useMessageStore = create<Store & Action>((set, get) => ({
         type,
         reply_to,
       });
-      set({
-        messageMap: get().messageMap.set(newMessage._id, newMessage),
-        messageOrder: [...get().messageOrder, newMessage._id],
-      });
+      get().handleReceiveMessage(newMessage);
+      return newMessage;
     } catch (error) {
       console.error("發送訊息失敗:", error);
     }

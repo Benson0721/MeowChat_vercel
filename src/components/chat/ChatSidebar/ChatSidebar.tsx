@@ -34,7 +34,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import useChatroomStore from "@/stores/chatroom-store";
 import GroupChats from "./GroupChats";
@@ -42,6 +42,7 @@ import GlobalChat from "./GlobalChat";
 import PrivateChats from "./PrivateChats";
 import useUserStore from "@/stores/user-store";
 import LogoutDialog from "../../LogoutDialog";
+import SocketContext from "@/hooks/socketManager";
 
 interface ChatSidebarProps {
   collapsed: boolean;
@@ -58,6 +59,9 @@ export function ChatSidebar({
   const user = useUserStore((state) => state.user);
   const chatroomsMap = useChatroomStore((state) => state.chatroomsMap);
   const chatroomsOrder = useChatroomStore((state) => state.chatroomsOrder);
+  const setCurrentChat = useChatroomStore((state) => state.setCurrentChat);
+  const currentChat = useChatroomStore((state) => state.currentChat);
+  const { socket } = useContext(SocketContext);
   const [groupChats, setGroupChats] = useState([]);
   const [privateChats, setPrivateChats] = useState([]);
   const [globalChats, setGlobalChats] = useState([]);
@@ -79,6 +83,14 @@ export function ChatSidebar({
       );
     }
   }, [chatroomsOrder]);
+
+  useEffect(() => {
+    if (!socket) return;
+    socket.emit("join room", currentChat._id);
+    return () => {
+      socket.emit("leave room", currentChat._id);
+    };
+  }, [currentChat]);
 
   return (
     <TooltipProvider>
@@ -122,10 +134,14 @@ export function ChatSidebar({
             </div>
           </div>
 
-          {/* Content */}
           <div className="flex-1 overflow-y-auto p-4 space-y-6">
             {/* Global Chat */}
-            <GlobalChat collapsed={collapsed} globalChat={globalChats?.[0]} />
+            <GlobalChat
+              collapsed={collapsed}
+              globalChat={globalChats?.[0]}
+              setCurrentChat={setCurrentChat}
+              currentChat={currentChat}
+            />
             {!collapsed && <Separator className="bg-meow-purple/20" />}
 
             {/* Chat Groups */}
@@ -133,11 +149,18 @@ export function ChatSidebar({
               collapsed={collapsed}
               onCreateGroup={onCreateGroup}
               groupChats={groupChats}
+              setCurrentChat={setCurrentChat}
+              currentChat={currentChat}
             />
             {!collapsed && <Separator className="bg-meow-purple/20" />}
 
             {/* Direct Messages */}
-            <PrivateChats collapsed={collapsed} privateChats={privateChats} />
+            <PrivateChats
+              collapsed={collapsed}
+              privateChats={privateChats}
+              setCurrentChat={setCurrentChat}
+              currentChat={currentChat}
+            />
           </div>
 
           {/* Footer */}

@@ -11,11 +11,11 @@ import useChatroomStore from "@/stores/chatroom-store";
 interface GlobalChatProps {
   collapsed: boolean;
   globalChat: Chatroom;
+  setCurrentChat: (chatroom: Chatroom) => void;
+  currentChat: Chatroom;
 }
 
-export default function GlobalChat({ collapsed, globalChat }: GlobalChatProps) {
-  const setCurrentChat = useChatroomStore((state) => state.setCurrentChat);
-  const currentChat = useChatroomStore((state) => state.currentChat);
+export default function GlobalChat({ collapsed, globalChat, setCurrentChat, currentChat }: GlobalChatProps) {
   return (
     <div>
       {!collapsed && (

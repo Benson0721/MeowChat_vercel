@@ -17,17 +17,8 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Message {
-  id: string;
-  user: string;
-  avatar: string;
-  content: string;
-  timestamp: string;
-  isMe: boolean;
-  isRead: boolean;
-  isRetracted: boolean;
-}
+import { Message } from "../../types/apiType";
+import useUserStore from "@/stores/user-store";
 
 interface ChatMessageProps {
   message: Message;
@@ -37,6 +28,7 @@ interface ChatMessageProps {
 export function ChatMessage({ message, onRecall }: ChatMessageProps) {
   const [showActions, setShowActions] = useState(false);
   const [reactions, setReactions] = useState<Record<string, number>>({});
+  const user = useUserStore((state) => state.user);
 
   const handleReaction = (emoji: string) => {
     setReactions((prev) => ({
@@ -46,8 +38,8 @@ export function ChatMessage({ message, onRecall }: ChatMessageProps) {
   };
 
   const handleRecall = () => {
-    if (onRecall && message.isMe && !message.isRetracted) {
-      onRecall(message.id);
+    if (onRecall && message.user._id === user._id && !message.isRecalled) {
+      onRecall(message._id);
     }
   };
 
@@ -61,19 +53,20 @@ export function ChatMessage({ message, onRecall }: ChatMessageProps) {
         <div
           className={cn(
             "flex gap-3 group",
-            message.isMe ? "flex-row-reverse" : "flex-row"
+            message?.user._id === user._id ? "flex-row-reverse" : "flex-row"
           )}
           onMouseEnter={() => setShowActions(true)}
           onMouseLeave={() => setShowActions(false)}
         >
-          {!message.isMe && (
+          {message?.user._id !== user._id && (
             <Avatar className="w-10 h-10 flex-shrink-0">
-              <AvatarImage src={message.avatar} />
+              <AvatarImage src={message.user.avatar} />
               <AvatarFallback className="bg-meow-pink text-purple-800 text-sm">
-                {message.user
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")}
+                {typeof message?.user != "string" &&
+                  message?.user?.username
+                    .split("")
+                    .map((n) => n[0])
+                    .join("")}
               </AvatarFallback>
             </Avatar>
           )}
@@ -81,25 +74,25 @@ export function ChatMessage({ message, onRecall }: ChatMessageProps) {
           <div
             className={cn(
               "flex flex-col max-w-[70%]",
-              message.isMe ? "items-end" : "items-start"
+              message?.user._id === user._id ? "items-end" : "items-start"
             )}
           >
-            {!message.isMe && (
+            {message?.user._id !== user._id && (
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-sm font-medium text-purple-800">
-                  {message.user}
+                  {message?.user.username}
                 </span>
                 <span className="text-xs text-purple-500">
-                  {message.timestamp}
+                  {/*message.timestamp*/}
                 </span>
-                {!message.isRead && (
+                {/*!message.isRead && (
                   <Badge
                     variant="secondary"
                     className="text-xs bg-blue-100 text-blue-800"
                   >
                     Unread
                   </Badge>
-                )}
+                )*/}
               </div>
             )}
 
@@ -107,17 +100,19 @@ export function ChatMessage({ message, onRecall }: ChatMessageProps) {
               <div
                 className={cn(
                   "chat-bubble hover-lift transition-all duration-200 relative",
-                  message.isMe ? "chat-bubble-me" : "chat-bubble-other",
-                  message.isRetracted && "opacity-70"
+                  message?.user._id === user._id
+                    ? "chat-bubble-me"
+                    : "chat-bubble-other",
+                  message?.isRecalled && "opacity-70"
                 )}
               >
                 <p
                   className={cn(
                     "text-sm leading-relaxed",
-                    message.isRetracted && "italic text-gray-500"
+                    message?.isRecalled && "italic text-gray-500"
                   )}
                 >
-                  {message.content}
+                  {message?.content}
                 </p>
               </div>
 
@@ -126,8 +121,8 @@ export function ChatMessage({ message, onRecall }: ChatMessageProps) {
                 <div
                   className={cn(
                     "absolute top-15  flex items-center gap-1 bg-white shadow-lg rounded-xl border border-meow-purple/20 p-1 transition-opacity duration-200",
-                    message.isMe ? "-right-0" : "-left-0",
-                    message.isRetracted && "hidden"
+                    message?.user._id === user._id ? "-right-0" : "-left-0",
+                    message?.isRecalled && "hidden"
                   )}
                 >
                   <Button
@@ -161,7 +156,7 @@ export function ChatMessage({ message, onRecall }: ChatMessageProps) {
                   >
                     <Copy className="w-4 h-4" />
                   </Button>
-                  {message.isMe && !message.isRetracted && (
+                  {message?.user._id === user._id && !message?.isRecalled && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -191,31 +186,31 @@ export function ChatMessage({ message, onRecall }: ChatMessageProps) {
               </div>
             )}
 
-            {message.isMe && (
+            {message?.user._id === user._id && (
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-xs text-purple-500">
-                  {message.timestamp}
+                  {/*message.timestamp*/}
                 </span>
-                {!message.isRead && (
+                {/*!message.isRead && (
                   <Badge
                     variant="secondary"
                     className="text-xs bg-blue-100 text-blue-800"
                   >
                     Unread
                   </Badge>
-                )}
+                )*/}
               </div>
             )}
           </div>
 
-          {message.isMe && (
+          {/*message?.user._id === user._id && (
             <Avatar className="w-10 h-10 flex-shrink-0">
-              <AvatarImage src={message.avatar} />
+              <AvatarImage src={message?.user.avatar} />
               <AvatarFallback className="bg-meow-purple text-purple-800 text-sm">
                 You
               </AvatarFallback>
             </Avatar>
-          )}
+          )*/}
         </div>
       </ContextMenuTrigger>
 
@@ -236,7 +231,7 @@ export function ChatMessage({ message, onRecall }: ChatMessageProps) {
           <Copy className="w-4 h-4 mr-2" />
           Copy Message
         </ContextMenuItem>
-        {message.isMe && !message.isRetracted && (
+        {message?.user._id === user._id && !message?.isRecalled && (
           <ContextMenuItem onClick={handleRecall}>
             <RotateCcw className="w-4 h-4 mr-2" />
             Recall Message

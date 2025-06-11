@@ -1,7 +1,11 @@
 import { axiosInstance } from "./axios-config";
 
 export const getHistoryMessage = async (chatroom_id: string) => {
-  const messages = await axiosInstance.get(`/api/message/${chatroom_id}`);
+  const messages = await axiosInstance.get(`/api/message`, {
+    params: {
+      chatroom_id,
+    },
+  });
   return messages.data;
 };
 
@@ -29,8 +33,13 @@ export const sendMessage = async ({
 };
 
 export const recallMessage = async (message_id: string) => {
-  const message = await axiosInstance.patch(`/api/message/${message_id}`, {
-    isRecalled: true,
+  const message = await axiosInstance.patch(`/api/message`, {
+    params: {
+      message_id,
+    },
+    data: {
+      isRecalled: true,
+    },
   });
   return message.data;
 };

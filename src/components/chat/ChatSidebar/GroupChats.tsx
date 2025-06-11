@@ -12,15 +12,18 @@ interface GroupChatsProps {
   collapsed: boolean;
   groupChats: Array<Chatroom>;
   onCreateGroup: () => void;
+  setCurrentChat: (chatroom: Chatroom) => void;
+  currentChat: Chatroom;
 }
 
 export default function GroupChats({
   collapsed,
   groupChats,
   onCreateGroup,
+  setCurrentChat,
+  currentChat,
 }: GroupChatsProps) {
-  const setCurrentChat = useChatroomStore((state) => state.setCurrentChat);
-  const currentChat = useChatroomStore((state) => state.currentChat);
+
   return (
     <div>
       {!collapsed && (

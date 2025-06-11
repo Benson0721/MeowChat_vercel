@@ -18,6 +18,7 @@ type Store = {
 };
 
 type Action = {
+  setOtherUsers: (users: Map<string, User>) => void;
   getOtherUsers: (user_id: string) => Promise<void>;
   editUser: (user: User) => Promise<void>;
   changeStatus: (user: User, status: string) => Promise<void>;
@@ -43,6 +44,19 @@ const useUserStore = create<Store & Action>()(
       otherUsersOrder: [],
       isLogin: false,
 
+      setOtherUsers: (users: Map<string, User>) => {
+        const OnlineUsers = Array.from(users.values()).filter(
+          (user) => user.status !== "offline"
+        );
+        const OfflineUsers = Array.from(users.values()).filter(
+          (user) => user.status === "offline"
+        );
+        const sortedUsers = [...OnlineUsers, ...OfflineUsers];
+        set({
+          otherUsersMap: new Map(sortedUsers.map((user) => [user._id, user])),
+          otherUsersOrder: sortedUsers.map((user) => user._id),
+        });
+      },
       getOtherUsers: async (user_id: string) => {
         try {
           const users = await getOtherUsers(user_id);
@@ -56,6 +70,7 @@ const useUserStore = create<Store & Action>()(
             otherUsersMap: new Map(sortedUsers.map((user) => [user._id, user])),
             otherUsersOrder: sortedUsers.map((user) => user._id),
           });
+          console.log("otherUsersMap:", get().otherUsersMap);
         } catch (error) {
           console.error("取得其他使用者失敗:", error);
         }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Users, Hash, Send, Paperclip, MoreVertical } from "lucide-react";
@@ -8,6 +8,9 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import useChatroomStore from "@/stores/chatroom-store";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import useUserStore from "@/stores/user-store";
+import useMessageStore from "@/stores/message-store";
+import SocketContext from "@/hooks/socketManager";
+import { Message } from "@/types/apiType";
 
 interface ChatAreaProps {
   onToggleUserPanel: () => void;
@@ -99,51 +102,73 @@ export function ChatArea({
   customGroups,
 }: ChatAreaProps) {
   const currentChat = useChatroomStore((state) => state.currentChat);
+  const messageMap = useMessageStore((state) => state.messageMap);
+  const messageOrder = useMessageStore((state) => state.messageOrder);
+  const sendMessage = useMessageStore((state) => state.sendMessage);
+  const getHistoryMessage = useMessageStore((state) => state.getHistoryMessage);
   const otherUser = useUserStore((state) => state.otherUsersMap);
+  const handleReceiveMessage = useMessageStore(
+    (state) => state.handleReceiveMessage
+  );
   const user = useUserStore((state) => state.user);
   const [message, setMessage] = useState("");
+  const [isreply, setIsReply] = useState("");
   const [messages, setMessages] = useState(mockMessages);
+  const [currentMessageMap, setCurrentMessageMap] = useState(
+    new Map<string, Message>()
+  );
+  const [currentMessageOrder, setCurrentMessageOrder] = useState<string[]>([]);
   const chatInfo = getChatTitle(currentChat?._id || "", customGroups);
   const [chatName, setChatName] = useState(currentChat?.name || "");
   const [currentPrivate, setCurrentPrivate] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!currentChat?.name) return;
+  const { socket } = useContext(SocketContext);
+
+  const getChatroomInfo = async () => {
+    await getHistoryMessage(currentChat._id);
+    const messageMap = useMessageStore.getState().messageMap;
+    const messageOrder = useMessageStore.getState().messageOrder;
+    setCurrentMessageMap(messageMap);
+    setCurrentMessageOrder(messageOrder);
     const nameInitials = currentChat.name
       .split(" ")
       .map((n) => n[0])
       .join("");
-    setChatName(nameInitials);
-  }, [currentChat]);
-
-  useEffect(() => {
-    if (currentChat?.type !== "private") return;
     const privateUser = currentChat.members.find(
       (member) => member !== user._id
     );
     setCurrentPrivate(privateUser || null);
+    setChatName(nameInitials);
+  };
+
+  useEffect(() => {
+    if (!currentChat) return;
+    getChatroomInfo();
+    socket.on("chat message", (msg: Message) => {
+      console.log("message: " + msg);
+      handleReceiveMessage(msg);
+    });
+    return () => {
+      socket.off("chat message");
+    };
   }, [currentChat]);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
+    console.log("message:", message);
+    console.log("currentChat:", currentChat);
+    console.log("user:", user._id);
     if (message.trim()) {
-      const newMessage = {
-        id: Date.now().toString(),
-        user: "You",
-        avatar:
-          "https://images.unsplash.com/photo-1582562124811-c09040d0a901?w=100&h=100&fit=crop&crop=faces",
-        content: message,
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        isMe: true,
-        isRead: false,
-        isRetracted: false,
-      };
-      setMessages([...messages, newMessage]);
+      await sendMessage(currentChat._id, user._id, message, "text", isreply);
+      socket.emit("chat message", message, currentChat._id);
+
       setMessage("");
     }
   };
+
+  useEffect(() => {
+    setCurrentMessageMap(messageMap);
+    setCurrentMessageOrder(messageOrder);
+  }, [messageMap, messageOrder]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -248,13 +273,17 @@ export function ChatArea({
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-white to-meow-cream/30">
-        {messages.map((msg) => (
-          <ChatMessage
-            key={msg.id}
-            message={msg}
-            onRecall={handleRecallMessage}
-          />
-        ))}
+        {currentMessageOrder?.map((id) => {
+          const msg = currentMessageMap?.get(id);
+          if (!msg) return null;
+          return (
+            <ChatMessage
+              key={id}
+              message={msg}
+              onRecall={handleRecallMessage}
+            />
+          );
+        })}
       </div>
 
       {/* Message Input */}

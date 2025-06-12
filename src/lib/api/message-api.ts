@@ -34,12 +34,7 @@ export const sendMessage = async ({
 
 export const recallMessage = async (message_id: string) => {
   const message = await axiosInstance.patch(`/api/message`, {
-    params: {
-      message_id,
-    },
-    data: {
-      isRecalled: true,
-    },
+    message_id,
   });
   return message.data;
 };

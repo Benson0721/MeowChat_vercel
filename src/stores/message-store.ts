@@ -6,11 +6,12 @@ import {
   sendMessage,
   recallMessage,
 } from "../lib/api/message-api";
-import { User } from "../types/apiType";
+import { DateParser } from "../utils/TimeParser";
 
 type Store = {
   messageMap: Map<string, Message>;
   messageOrder: string[]; // 存儲訊息的 ID 順序
+  datedMessages: Record<string, Message[]>; // 存儲按日期分組的訊息
   readCount: number;
 };
 
@@ -26,14 +27,34 @@ type Action = {
   recallMessage: (message_id: string) => Promise<void>;
   getReadCount: (message_id: string) => Promise<void>;
   handleReceiveMessage: (message: Message) => void;
+  handleUpdateMessage: (message_id: string) => void;
+  getDatedMessage: (messages: Message[]) => void;
 };
 
 const useMessageStore = create<Store & Action>((set, get) => ({
   messageMap: new Map<string, Message>(),
   messageOrder: [],
+  datedMessages: {},
   readCount: 0,
 
+  getDatedMessage: (messages: Message[]) => {
+    console.log("getDatedMessage: ", messages);
+    const groupedMessages = messages.reduce((acc, msg) => {
+      const dateKey = DateParser(msg.createdAt); // e.g., '2025-06-12'
+
+      if (!acc[dateKey]) {
+        acc[dateKey] = [];
+      }
+      acc[dateKey].push(msg);
+
+      return acc;
+    }, {});
+    set({
+      datedMessages: groupedMessages,
+    });
+  },
   handleReceiveMessage: (message: Message) => {
+    console.log("receive message1: ", message);
     const newMessageMap = new Map(get().messageMap);
     newMessageMap.set(message._id, message);
     const newMessageOrder = [...get().messageOrder, message._id];
@@ -41,11 +62,29 @@ const useMessageStore = create<Store & Action>((set, get) => ({
       messageMap: newMessageMap,
       messageOrder: newMessageOrder,
     });
+    get().getDatedMessage([...get().messageMap.values()]);
+  },
+  handleUpdateMessage: (message_id: string) => {
+    console.log("update message: ", message_id);
+    const newMessageMap = new Map(get().messageMap);
+    newMessageMap.set(message_id, {
+      ...get().messageMap.get(message_id),
+      isRecalled: true,
+    });
+    set({
+      messageMap: newMessageMap,
+    });
+    get().getDatedMessage([
+      ...get().messageMap.values(),
+      get().messageMap.get(message_id),
+    ]);
   },
 
   getHistoryMessage: async (chatroom_id: string) => {
     try {
       const messages = await getHistoryMessage(chatroom_id);
+      console.log("messages: ", messages);
+      get().getDatedMessage(messages);
       set({
         messageMap: new Map(
           messages.map((message: Message) => [message._id, message])
@@ -65,6 +104,7 @@ const useMessageStore = create<Store & Action>((set, get) => ({
         type,
         reply_to,
       });
+      console.log("new message: ", newMessage);
       get().handleReceiveMessage(newMessage);
       return newMessage;
     } catch (error) {
@@ -81,16 +121,8 @@ const useMessageStore = create<Store & Action>((set, get) => ({
   },
   recallMessage: async (message_id: string) => {
     try {
-      const updatedMessage = await recallMessage(message_id);
-      set({
-        messageMap: get().messageMap.set(updatedMessage._id, updatedMessage),
-        messageOrder: get().messageOrder.map((id) => {
-          if (id === message_id) {
-            return updatedMessage._id;
-          }
-          return id;
-        }),
-      });
+      await recallMessage(message_id);
+      get().handleUpdateMessage(message_id);
     } catch (error) {
       console.error("撤回訊息失敗:", error);
     }

@@ -1,8 +1,16 @@
 import { useState, useEffect, useContext } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Hash, Send, Paperclip, MoreVertical } from "lucide-react";
-import { ChatMessage } from "./ChatMessage";
+import {
+  Users,
+  Hash,
+  Send,
+  Paperclip,
+  MoreVertical,
+  Reply,
+  CircleX,
+} from "lucide-react";
+import { ChatMessage } from "./ChatMessage/ChatMessage";
 import { EmojiStickerPicker } from "./EmojiStickerPicker";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import useChatroomStore from "@/stores/chatroom-store";
@@ -11,6 +19,7 @@ import useUserStore from "@/stores/user-store";
 import useMessageStore from "@/stores/message-store";
 import SocketContext from "@/hooks/socketManager";
 import { Message } from "@/types/apiType";
+import dayjs from "dayjs";
 
 interface ChatAreaProps {
   onToggleUserPanel: () => void;
@@ -24,77 +33,6 @@ interface ChatAreaProps {
   }>;
 }
 
-const mockMessages = [
-  {
-    id: "1",
-    user: "Alice Whiskers",
-    avatar:
-      "https://images.unsplash.com/photo-1535268647677-300dbf3d78d1?w=100&h=100&fit=crop&crop=faces",
-    content: "Just adopted a new kitten! 🐱 She's absolutely adorable",
-    timestamp: "10:30 AM",
-    isMe: false,
-    isRead: true,
-    isRetracted: false,
-  },
-  {
-    id: "2",
-    user: "You",
-    avatar:
-      "https://images.unsplash.com/photo-1582562124811-c09040d0a901?w=100&h=100&fit=crop&crop=faces",
-    content: "Aww! What's her name? I'd love to see photos! 😍",
-    timestamp: "10:32 AM",
-    isMe: true,
-    isRead: true,
-    isRetracted: false,
-  },
-  {
-    id: "3",
-    user: "Alice Whiskers",
-    avatar:
-      "https://images.unsplash.com/photo-1535268647677-300dbf3d78d1?w=100&h=100&fit=crop&crop=faces",
-    content: "This message was retracted",
-    timestamp: "10:33 AM",
-    isMe: false,
-    isRead: true,
-    isRetracted: true,
-  },
-  {
-    id: "4",
-    user: "Bob Mittens",
-    avatar: "",
-    content:
-      "Luna is such a perfect name for a cat! My cat Oliver sends his greetings 🐾",
-    timestamp: "10:35 AM",
-    isMe: false,
-    isRead: false,
-    isRetracted: false,
-  },
-];
-
-const getChatTitle = (
-  chatId: string,
-  customGroups: Array<{ id: string; name: string; icon: string }>
-) => {
-  // Check custom groups first
-  const customGroup = customGroups.find((group) => group.id === chatId);
-  if (customGroup) {
-    return { name: customGroup.name, icon: customGroup.icon };
-  }
-
-  const titles: Record<string, { name: string; icon: any; members?: number }> =
-    {
-      global: { name: "Global Chatroom", icon: "🌍", members: 1247 },
-      "cat-lovers": { name: "Cat Lovers", icon: "❤️", members: 1247 },
-      "dev-cats": { name: "Dev Cats", icon: "☕", members: 342 },
-      "kitten-pics": { name: "Kitten Pics", icon: "#", members: 2891 },
-      "cat-care": { name: "Cat Care Tips", icon: "🏥", members: 567 },
-      "dm-alice": { name: "Alice Whiskers", icon: "💬" },
-      "dm-bob": { name: "Bob Mittens", icon: "💬" },
-      "dm-charlie": { name: "Charlie Paws", icon: "💬" },
-    };
-  return titles[chatId] || { name: "Unknown Chat", icon: "💬" };
-};
-
 export function ChatArea({
   onToggleUserPanel,
   showUserPanel,
@@ -102,34 +40,30 @@ export function ChatArea({
   customGroups,
 }: ChatAreaProps) {
   const currentChat = useChatroomStore((state) => state.currentChat);
-  const messageMap = useMessageStore((state) => state.messageMap);
-  const messageOrder = useMessageStore((state) => state.messageOrder);
+  const datedMessages = useMessageStore((state) => state.datedMessages);
   const sendMessage = useMessageStore((state) => state.sendMessage);
   const getHistoryMessage = useMessageStore((state) => state.getHistoryMessage);
   const otherUser = useUserStore((state) => state.otherUsersMap);
+  const recallMessage = useMessageStore((state) => state.recallMessage);
   const handleReceiveMessage = useMessageStore(
     (state) => state.handleReceiveMessage
   );
+  const handleUpdateMessage = useMessageStore(
+    (state) => state.handleUpdateMessage
+  );
   const user = useUserStore((state) => state.user);
   const [message, setMessage] = useState("");
-  const [isreply, setIsReply] = useState("");
-  const [messages, setMessages] = useState(mockMessages);
-  const [currentMessageMap, setCurrentMessageMap] = useState(
-    new Map<string, Message>()
-  );
-  const [currentMessageOrder, setCurrentMessageOrder] = useState<string[]>([]);
-  const chatInfo = getChatTitle(currentChat?._id || "", customGroups);
+  const [isreply, setIsReply] = useState<Message | null>(null);
+  //const [messages, setMessages] = useState(mockMessages);
   const [chatName, setChatName] = useState(currentChat?.name || "");
   const [currentPrivate, setCurrentPrivate] = useState<string | null>(null);
+  const [groupedMessages, setGroupedMessages] = useState([]);
 
   const { socket } = useContext(SocketContext);
 
   const getChatroomInfo = async () => {
     await getHistoryMessage(currentChat._id);
-    const messageMap = useMessageStore.getState().messageMap;
-    const messageOrder = useMessageStore.getState().messageOrder;
-    setCurrentMessageMap(messageMap);
-    setCurrentMessageOrder(messageOrder);
+
     const nameInitials = currentChat.name
       .split(" ")
       .map((n) => n[0])
@@ -143,37 +77,49 @@ export function ChatArea({
 
   useEffect(() => {
     if (!currentChat) return;
+    setIsReply(null);
     getChatroomInfo();
-    socket.on("chat message", (msg: Message) => {
-      console.log("message: " + msg);
-      handleReceiveMessage(msg);
-    });
+    const onMessage = (msg: Message) => {
+      if (msg.chatroom_id === currentChat._id && msg.user._id !== user._id) {
+        handleReceiveMessage(msg);
+      }
+    };
+    const onUpdateMessage = (message_id: string, user_id: string) => {
+      if (user_id !== user._id) {
+        handleUpdateMessage(message_id);
+      }
+    };
+    socket.on("chat message", onMessage); //避免重綁
+    socket.on("update message", onUpdateMessage);
     return () => {
       socket.off("chat message");
+      socket.off("update message");
     };
   }, [currentChat]);
 
-  const handleSendMessage = async () => {
-    console.log("message:", message);
-    console.log("currentChat:", currentChat);
-    console.log("user:", user._id);
-    if (message.trim()) {
-      await sendMessage(currentChat._id, user._id, message, "text", isreply);
-      socket.emit("chat message", message, currentChat._id);
-
-      setMessage("");
-    }
+  const handleCopy = (message: Message) => {
+    navigator.clipboard.writeText(message.content);
+    setMessage(message.content);
   };
 
-  useEffect(() => {
-    setCurrentMessageMap(messageMap);
-    setCurrentMessageOrder(messageOrder);
-  }, [messageMap, messageOrder]);
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
+  const handleReply = (message: Message) => {
+    console.log("Reply");
+    setIsReply(message);
+  };
+  const handleSendMessage = async () => {
+    if (message.trim()) {
+      console.log(isreply);
+      console.log(isreply?._id);
+      const newMessage = await sendMessage(
+        currentChat._id,
+        user._id,
+        message,
+        "text",
+        isreply?._id
+      );
+      socket.emit("chat message", newMessage, currentChat._id);
+      setMessage("");
+      setIsReply(null);
     }
   };
 
@@ -181,6 +127,8 @@ export function ChatArea({
     content: string,
     type: "emoji" | "sticker"
   ) => {
+    console.log(content, type);
+    /*
     if (type === "emoji") {
       setMessage((prev) => prev + content);
     } else {
@@ -201,16 +149,13 @@ export function ChatArea({
       };
       setMessages([...messages, newMessage]);
     }
+      */
   };
 
-  const handleRecallMessage = (messageId: string) => {
-    setMessages((prev) =>
-      prev.map((msg) =>
-        msg.id === messageId && msg.isMe
-          ? { ...msg, content: "This message was retracted", isRetracted: true }
-          : msg
-      )
-    );
+  const handleRecallMessage = async (messageId: string) => {
+    console.log("recall message: ", messageId);
+    socket.emit("update message", messageId, user._id);
+    await recallMessage(messageId);
   };
 
   return (
@@ -272,49 +217,77 @@ export function ChatArea({
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-white to-meow-cream/30">
-        {currentMessageOrder?.map((id) => {
-          const msg = currentMessageMap?.get(id);
-          if (!msg) return null;
+      <div className="relative flex-1 max-h-[calc(100vh-200px)] overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-white to-meow-cream/30">
+        {Object.entries(datedMessages)?.map(([date, msgs]) => {
           return (
-            <ChatMessage
-              key={id}
-              message={msg}
-              onRecall={handleRecallMessage}
-            />
+            <div key={date}>
+              <div className="sticky top-0 z-10 bg-white/80 backdrop-blur text-center text-xs text-gray-500 py-2">
+                {dayjs(date).format("YYYY/MM/DD (ddd)")} {/* 上方日期列 */}
+              </div>
+              {msgs.map((msg) => (
+                <ChatMessage
+                  key={msg._id}
+                  message={msg}
+                  onRecall={handleRecallMessage}
+                  handleReply={handleReply}
+                  handleCopy={handleCopy}
+                />
+              ))}
+            </div>
           );
         })}
       </div>
 
       {/* Message Input */}
-      <div className="p-4 bg-white border-t border-meow-purple/20">
-        <div className="flex items-center gap-3 bg-meow-cream/50 rounded-2xl p-3 shadow-sm">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-purple-600 hover:bg-meow-purple/50 rounded-xl transition-colors"
-          >
-            <Paperclip className="w-4 h-4" />
-          </Button>
+      <div className="relative ">
+        {isreply && (
+          <div className="absolute w-full bottom-[115px] flex items-center gap-3 bg-meow-purple/20 rounded-t-lg p-3 shadow-sm">
+            <Reply className="w-4 h-4" />
+            <div className="ml-5 flex flex-col">
+              reply to {isreply.user.username}:
+              <br />
+              {isreply.content}
+            </div>
+            <CircleX
+              className="w-4 h-4 cursor-pointer ml-auto"
+              onClick={() => setIsReply(null)}
+            />
+          </div>
+        )}
+        <div className="p-6 bg-white border-t border-meow-purple/20">
+          <div className="flex items-center gap-3 bg-meow-cream/50 rounded-2xl p-3 shadow-sm">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-purple-600 hover:bg-meow-purple/50 rounded-xl transition-colors"
+            >
+              <Paperclip className="w-4 h-4" />
+            </Button>
 
-          <Input
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder={`Message ${chatInfo.name}...`}
-            className="flex-1 border-0 bg-transparent placeholder:text-purple-500 focus-visible:ring-0 focus-visible:ring-offset-0"
-          />
+            <Input
+              onKeyDown={(e) => {
+                console.log(e.key);
+                if (e.key === "Enter") {
+                  handleSendMessage();
+                }
+              }}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder={`Message ${currentChat?.name}...`}
+              className="flex-1 border-0 bg-transparent placeholder:text-purple-500 focus-visible:ring-0 focus-visible:ring-offset-0"
+            />
 
-          <EmojiStickerPicker onSelect={handleEmojiStickerSelect} />
+            <EmojiStickerPicker onSelect={handleEmojiStickerSelect} />
 
-          <Button
-            onClick={handleSendMessage}
-            disabled={!message.trim()}
-            size="sm"
-            className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl px-4 transition-all duration-200 shadow-sm"
-          >
-            <Send className="w-4 h-4" />
-          </Button>
+            <Button
+              onClick={handleSendMessage}
+              disabled={!message.trim()}
+              size="sm"
+              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl px-4 transition-all duration-200 shadow-sm"
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>

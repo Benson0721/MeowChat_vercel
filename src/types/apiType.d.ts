@@ -19,7 +19,7 @@ export interface Message {
   user: User;
   content: string;
   type: string;
-  reply_to: string | null;
+  reply_to: Message | null;
   isRecalled: boolean;
   createdAt: Date;
 }

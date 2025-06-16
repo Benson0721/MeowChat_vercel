@@ -3,13 +3,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useEffect, useState, useContext } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Chatroom } from "../../../types/apiType";
+import { Chatroom, ChatroomMember } from "../../../types/apiType";
 import useUserStore from "../../../stores/user-store";
-import useChatroomStore from "../../../stores/chatroom-store";
-import SocketContext from "@/hooks/socketManager";
+import useChatroomMemberStore from "../../../stores/chatroom-member-store";
 
 interface PrivateChatsProps {
   privateChats: Array<Chatroom>;
@@ -24,38 +23,15 @@ export default function PrivateChats({
   setCurrentChat,
   currentChat,
 }: PrivateChatsProps) {
-  const setOtherUsers = useUserStore((state) => state.setOtherUsers);
   const otherUser = useUserStore((state) => state.otherUsersMap);
   const user = useUserStore((state) => state.user);
+  const userMemberMap = useChatroomMemberStore((state) => state.userMemberMap);
 
-  /*const { socket } = useContext(SocketContext);
-
-  const statusHandler = (userId: string, status: string) => {
-    if (otherUser.has(userId)) {
-      const user = otherUser.get(userId);
-      user.status = status;
-      otherUser.set(userId, user);
-      const newOtherUsers = new Map(otherUser);
-      setOtherUsers(newOtherUsers);
-    }
-  };
-
-  useEffect(() => {
-    if (!socket) return;
-    socket.on("user-status-online", (userId: string) => {
-      statusHandler(userId, "online");
-    });
-    socket.on("user-status-offline", (userId: string) => {
-      statusHandler(userId, "offline");
-    });
-  }, [socket]);
-*/
   privateChats.map((chat) => {
     chat.members = chat.members.filter((member) => member !== user._id);
     chat.name = otherUser.get(chat.members[0])?.username;
     return chat;
   });
-
   return (
     <div>
       {!collapsed && (
@@ -132,11 +108,11 @@ export default function PrivateChats({
                   />
                 </div>
                 <span className="font-medium text-sm">{privateChat.name}</span>
-                {/*{chat.unread > 0 && (
+                {userMemberMap.get(privateChat._id)?.unread_count > 0 && (
                   <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
-                    {chat.unread}
+                    {userMemberMap.get(privateChat._id)?.unread_count}
                   </span>
-                )}*/}
+                )}
               </button>
             )}
           </div>

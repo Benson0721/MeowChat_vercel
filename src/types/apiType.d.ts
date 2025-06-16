@@ -26,8 +26,15 @@ export interface Message {
 
 export interface ChatroomMember {
   _id: string;
-  chatroom_id: string;
+  chatroom_id: Chatroom;
   user_id: string;
   joined_at: Date;
   last_read_at: Date;
+  unread_count: number;
+}
+
+export interface ChatroomMemberList {
+  [chatroom_id: string]: {
+    members: ChatroomMember[];
+  };
 }

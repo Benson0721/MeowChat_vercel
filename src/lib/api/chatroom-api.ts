@@ -1,13 +1,11 @@
 import { axiosInstance } from "./axios-config.ts";
 
 export const getChatrooms = async (user_id: string) => {
-  console.log(user_id);
   const chatrooms = await axiosInstance.get(`/api/chatroom/`, {
     params: {
       user_id,
     },
   });
-  console.log(chatrooms.data);
   return chatrooms.data;
 };
 
@@ -22,13 +20,20 @@ export const createChatroom = async ({
   avatar: string;
   name: string;
 }) => {
-  console.log("Creating chatroom...");
   const chatroom = await axiosInstance.post("/api/chatroom", {
     type,
     members,
     avatar,
     name,
   });
-  console.log(chatroom.data);
   return chatroom.data;
+};
+
+export const getReadCount = async (message_id: string) => {
+  const res = await axiosInstance.get(`/api/message/readcount`, {
+    params: {
+      message_id,
+    },
+  });
+  return res.data;
 };

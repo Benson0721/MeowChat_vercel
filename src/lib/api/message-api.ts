@@ -39,11 +39,4 @@ export const recallMessage = async (message_id: string) => {
   return message.data;
 };
 
-export const getReadCount = async (message_id: string) => {
-  const res = await axiosInstance.get(`/api/message/readcount`, {
-    params: {
-      message_id,
-    },
-  });
-  return res.data;
-};
+

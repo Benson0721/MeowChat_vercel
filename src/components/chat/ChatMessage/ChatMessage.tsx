@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,8 +12,10 @@ import { Reply, Copy, Heart, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Message } from "../../../types/apiType";
 import useUserStore from "@/stores/user-store";
+import useChatroomMemberStore from "@/stores/chatroom-member-store";
 import MessageMenuComponent from "./MessageMenuComponent";
-import { DateParser, timeParser } from "@/utils/TimeParser";
+import useChatroomStore from "@/stores/chatroom-store";
+import { timeParser } from "@/utils/TimeParser";
 
 interface ChatMessageProps {
   message: Message;
@@ -29,8 +31,13 @@ export function ChatMessage({
   handleCopy,
 }: ChatMessageProps) {
   const [showActions, setShowActions] = useState(false);
+  const [isReadCount, setIsReadCount] = useState(0);
   const [reactions, setReactions] = useState<Record<string, number>>({});
   const user = useUserStore((state) => state.user);
+
+  const readCount = useChatroomMemberStore(
+    (state) => state.readCount?.[message._id] ?? 0
+  );
 
   const handleReaction = (emoji: string) => {
     setReactions((prev) => ({
@@ -44,6 +51,27 @@ export function ChatMessage({
       onRecall(messageId);
     }
   };
+  useEffect(() => {
+    console.log(`👀 渲染 message: ${message._id}, readCount: ${readCount}`);
+  }, [readCount]);
+  /* useEffect(() => {
+    if (!otherMemberMap?.get(currentChat._id)) return;
+    const members = otherMemberMap.get(currentChat._id);
+    if (!Array.isArray(members)) return;
+
+    const isReadCount = members.filter(
+      (m) =>
+        new Date(m.last_read_at).getTime() >
+        new Date(message.createdAt).getTime()
+    ).length;
+
+    setIsReadCount(isReadCount);
+    console.log("isReadCount: ", message._id, isReadCount); // 建議加 message id 辨識
+  }, [
+    otherMemberMap,
+    currentChat._id,
+    message.createdAt, // 這樣比 object 好
+  ]);*/
 
   return (
     <div className="flex flex-col">
@@ -54,8 +82,16 @@ export function ChatMessage({
             message?.user._id === user._id ? "ml-auto" : "mr-auto"
           )}
         >
-          Reply to {message?.reply_to?.user?.username}:{" "}
-          {message?.reply_to?.content}
+          Reply to {message?.reply_to?.user?.username}:
+          {message?.reply_to?.type === "sticker" ? (
+            <img
+              src={message?.reply_to?.content}
+              alt="sticker"
+              className="w-16 h-16"
+            />
+          ) : (
+            message?.reply_to?.content
+          )}
         </p>
       )}
       <div
@@ -94,14 +130,6 @@ export function ChatMessage({
               <span className="text-xs text-purple-500">
                 {timeParser(message.createdAt)}
               </span>
-              {/*!message.isRead && (
-                  <Badge
-                    variant="secondary"
-                    className="text-xs bg-blue-100 text-blue-800"
-                  >
-                    Unread
-                  </Badge>
-                )*/}
             </div>
           )}
 
@@ -118,11 +146,18 @@ export function ChatMessage({
                     message?.user._id === user._id
                       ? "chat-bubble-me"
                       : "chat-bubble-other",
+                    message?.type === "text" && "bg-meow-purple",
                     message?.isRecalled && "opacity-70"
                   )}
                 >
                   {message?.isRecalled ? (
                     <p className="italic text-gray-500">Recalled🤫</p>
+                  ) : message?.type === "sticker" ? (
+                    <img
+                      src={message.content}
+                      alt="sticker"
+                      className="w-24 h-24"
+                    />
                   ) : (
                     <p
                       className={cn(
@@ -161,7 +196,7 @@ export function ChatMessage({
 
             <div
               className={cn(
-                "opacity-0 flex items-center gap-1 bg-white shadow-lg rounded-xl border border-meow-purple/20 p-1 transition-opacity duration-200",
+                "max-w-[100px] max-h-[50px] opacity-0 flex items-center gap-1 bg-white shadow-lg rounded-xl border border-meow-purple/20 p-1 transition-opacity duration-200",
                 message?.user._id === user._id ? "mr-2" : "ml-2",
                 message?.isRecalled && "hidden",
                 showActions && "opacity-100"
@@ -200,24 +235,66 @@ export function ChatMessage({
               ))}
             </div>
           )}
-
           {message?.user._id === user._id && (
             <div className="flex items-center gap-2 mt-1">
               <span className="text-xs text-purple-500">
                 {timeParser(message.createdAt)}
               </span>
-              {/*!message.isRead && (
+              {readCount > 0 ? (
+                readCount > 1 ? (
                   <Badge
                     variant="secondary"
-                    className="text-xs bg-blue-100 text-blue-800"
+                    className="text-xs bg-green-100 text-green-800"
                   >
-                    Unread
+                    {readCount} Read
                   </Badge>
-                )*/}
+                ) : (
+                  <Badge
+                    variant="secondary"
+                    className="text-xs bg-green-100 text-green-800"
+                  >
+                    Read
+                  </Badge>
+                )
+              ) : (
+                <Badge
+                  variant="secondary"
+                  className="text-xs bg-blue-100 text-blue-800"
+                >
+                  Unread
+                </Badge>
+              )}
             </div>
           )}
         </div>
       </div>
     </div>
   );
+}
+
+{
+  /*isReadCount > 0 ? (
+  isReadCount > 1 ? (
+    <Badge
+      variant="secondary"
+      className="text-xs bg-green-100 text-green-800"
+    >
+      {isReadCount} Read
+    </Badge>
+  ) : (
+    <Badge
+      variant="secondary"
+      className="text-xs bg-green-100 text-green-800"
+    >
+      Read
+    </Badge>
+  )
+) : (
+  <Badge
+    variant="secondary"
+    className="text-xs bg-blue-100 text-blue-800"
+  >
+    Unread
+  </Badge>
+)*/
 }

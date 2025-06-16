@@ -11,7 +11,6 @@ import SocketContext from "@/hooks/socketManager";
 
 const Chat = () => {
   const { socket, connectSocket, disconnectSocket } = useContext(SocketContext);
-  //const [currentChat, setCurrentChat] = useState("global");
   const [showUserPanel, setShowUserPanel] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
@@ -48,6 +47,9 @@ const Chat = () => {
   const getOtherUsers = useUserStore((state) => state.getOtherUsers);
   const getChatrooms = useChatroomStore((state) => state.getChatrooms);
   const setOtherUsers = useUserStore((state) => state.setOtherUsers);
+  const setCurrentChat = useChatroomStore((state) => state.setCurrentChat);
+  const chatroomsMap = useChatroomStore((state) => state.chatroomsMap);
+  const chatroomsOrder = useChatroomStore((state) => state.chatroomsOrder);
 
   const fetchAllList = async () => {
     await getChatrooms(user._id);
@@ -73,11 +75,15 @@ const Chat = () => {
   }, [navigate]);
 
   useEffect(() => {
+    fetchAllList();
+  }, [user._id]);
+
+  useEffect(() => {
     const startChat = async () => {
+      setCurrentChat(chatroomsMap.get(chatroomsOrder.global[0]));
       if (!user) return;
       console.log("user connected:", user._id);
       connectSocket(user._id);
-      await fetchAllList();
       if (!socket) return;
       socket.on("connect", () => {
         console.log("Connected to server");
@@ -95,7 +101,7 @@ const Chat = () => {
     return () => {
       disconnectSocket();
     };
-  }, [user, socket]);
+  }, [socket]);
 
   const handleStartPrivateChat = (userId: string, username: string) => {
     /*

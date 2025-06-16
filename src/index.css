@@ -59,7 +59,7 @@
   }
 
   .chat-bubble-me {
-    @apply bg-meow-purple text-foreground ml-auto;
+    @apply  text-foreground ml-auto;
   }
 
   .chat-bubble-other {

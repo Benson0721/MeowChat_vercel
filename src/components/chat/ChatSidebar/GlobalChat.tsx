@@ -5,8 +5,10 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Globe } from "lucide-react";
-import { Chatroom } from "../../../types/apiType";
-import useChatroomStore from "@/stores/chatroom-store";
+import { Chatroom, ChatroomMember } from "../../../types/apiType";
+import { useEffect, useMemo } from "react";
+import useChatroomMemberStore from "@/stores/chatroom-member-store";
+import useUserStore from "@/stores/user-store";
 
 interface GlobalChatProps {
   collapsed: boolean;
@@ -15,7 +17,14 @@ interface GlobalChatProps {
   currentChat: Chatroom;
 }
 
-export default function GlobalChat({ collapsed, globalChat, setCurrentChat, currentChat }: GlobalChatProps) {
+export default function GlobalChat({
+  collapsed,
+  globalChat,
+  setCurrentChat,
+  currentChat,
+}: GlobalChatProps) {
+  const userMemberMap = useChatroomMemberStore((state) => state.userMemberMap);
+
   return (
     <div>
       {!collapsed && (
@@ -53,6 +62,11 @@ export default function GlobalChat({ collapsed, globalChat, setCurrentChat, curr
           >
             <Globe className="w-5 h-5 text-blue-500" />
             <span className="font-medium">{globalChat?.name}</span>
+            {userMemberMap?.get(globalChat?._id)?.unread_count > 0 && (
+              <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                {userMemberMap?.get(globalChat?._id)?.unread_count}
+              </span>
+            )}
           </button>
         )}
       </div>

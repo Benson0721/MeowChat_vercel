@@ -70,7 +70,6 @@ const useUserStore = create<Store & Action>()(
             otherUsersMap: new Map(sortedUsers.map((user) => [user._id, user])),
             otherUsersOrder: sortedUsers.map((user) => user._id),
           });
-          console.log("otherUsersMap:", get().otherUsersMap);
         } catch (error) {
           console.error("取得其他使用者失敗:", error);
         }

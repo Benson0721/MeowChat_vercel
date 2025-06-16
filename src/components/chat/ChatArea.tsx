@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,9 +17,12 @@ import useChatroomStore from "@/stores/chatroom-store";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import useUserStore from "@/stores/user-store";
 import useMessageStore from "@/stores/message-store";
+import useChatroomMemberStore from "@/stores/chatroom-member-store";
+import { getSticker } from "@/lib/api/sticker-api";
 import SocketContext from "@/hooks/socketManager";
 import { Message } from "@/types/apiType";
 import dayjs from "dayjs";
+import { ChatroomMember } from "@/types/apiType";
 
 interface ChatAreaProps {
   onToggleUserPanel: () => void;
@@ -37,33 +40,54 @@ export function ChatArea({
   onToggleUserPanel,
   showUserPanel,
   sidebarCollapsed,
-  customGroups,
 }: ChatAreaProps) {
   const currentChat = useChatroomStore((state) => state.currentChat);
+  const messages = useMessageStore((state) => state.messageMap);
   const datedMessages = useMessageStore((state) => state.datedMessages);
+  const otherUser = useUserStore((state) => state.otherUsersMap);
+  const memberMap = useChatroomMemberStore((state) => state.memberMap);
   const sendMessage = useMessageStore((state) => state.sendMessage);
   const getHistoryMessage = useMessageStore((state) => state.getHistoryMessage);
-  const otherUser = useUserStore((state) => state.otherUsersMap);
   const recallMessage = useMessageStore((state) => state.recallMessage);
+
   const handleReceiveMessage = useMessageStore(
     (state) => state.handleReceiveMessage
   );
   const handleUpdateMessage = useMessageStore(
     (state) => state.handleUpdateMessage
   );
+  const getChatroomMember = useChatroomMemberStore(
+    (state) => state.getChatroomMember
+  );
+  const updateLastReadAt = useChatroomMemberStore(
+    (state) => state.updateLastReadAt
+  );
+  const updateReadCount = useChatroomMemberStore(
+    (state) => state.updateReadCount
+  );
+
   const user = useUserStore((state) => state.user);
   const [message, setMessage] = useState("");
   const [isreply, setIsReply] = useState<Message | null>(null);
-  //const [messages, setMessages] = useState(mockMessages);
   const [chatName, setChatName] = useState(currentChat?.name || "");
   const [currentPrivate, setCurrentPrivate] = useState<string | null>(null);
-  const [groupedMessages, setGroupedMessages] = useState([]);
+  const [stickers, setStickers] = useState([]);
+  const lastMessageRef = useRef<HTMLDivElement>(null);
 
   const { socket } = useContext(SocketContext);
 
-  const getChatroomInfo = async () => {
-    await getHistoryMessage(currentChat._id);
+  const getAllSticker = async () => {
+    const allstickers = await getSticker();
+    if (allstickers) {
+      setStickers(allstickers);
+    }
+  };
 
+  const getChatroomInfo = async () => {
+    console.log("getChatroomInfo: ", currentChat._id);
+    await getHistoryMessage(currentChat._id);
+    await getChatroomMember(user._id);
+    await getAllSticker();
     const nameInitials = currentChat.name
       .split(" ")
       .map((n) => n[0])
@@ -75,49 +99,31 @@ export function ChatArea({
     setChatName(nameInitials);
   };
 
-  useEffect(() => {
-    if (!currentChat) return;
-    setIsReply(null);
-    getChatroomInfo();
-    const onMessage = (msg: Message) => {
-      if (msg.chatroom_id === currentChat._id && msg.user._id !== user._id) {
-        handleReceiveMessage(msg);
-      }
-    };
-    const onUpdateMessage = (message_id: string, user_id: string) => {
-      if (user_id !== user._id) {
-        handleUpdateMessage(message_id);
-      }
-    };
-    socket.on("chat message", onMessage); //避免重綁
-    socket.on("update message", onUpdateMessage);
-    return () => {
-      socket.off("chat message");
-      socket.off("update message");
-    };
-  }, [currentChat]);
-
   const handleCopy = (message: Message) => {
     navigator.clipboard.writeText(message.content);
     setMessage(message.content);
   };
 
   const handleReply = (message: Message) => {
-    console.log("Reply");
-    setIsReply(message);
+    setIsReply(() => message);
   };
-  const handleSendMessage = async () => {
-    if (message.trim()) {
-      console.log(isreply);
-      console.log(isreply?._id);
+  const handleSendMessage = async (type: string, content: string) => {
+    if (content.trim()) {
       const newMessage = await sendMessage(
         currentChat._id,
         user._id,
-        message,
-        "text",
+        content,
+        type,
         isreply?._id
       );
       socket.emit("chat message", newMessage, currentChat._id);
+      /*if (newMessage.user._id === user._id) {
+        console.log("我方發送");
+        //const otherUserId = otherMemberMap.get(currentChat._id);
+
+        //console.log("otherUserId: ", otherUserId);
+        //socket.emit("update other unread", currentChat._id, otherUserId); //增加對方未讀
+      }*/
       setMessage("");
       setIsReply(null);
     }
@@ -127,36 +133,104 @@ export function ChatArea({
     content: string,
     type: "emoji" | "sticker"
   ) => {
-    console.log(content, type);
-    /*
     if (type === "emoji") {
       setMessage((prev) => prev + content);
     } else {
-      // For stickers, send immediately
-      const newMessage = {
-        id: Date.now().toString(),
-        user: "You",
-        avatar:
-          "https://images.unsplash.com/photo-1582562124811-c09040d0a901?w=100&h=100&fit=crop&crop=faces",
-        content: content,
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        isMe: true,
-        isRead: false,
-        isRetracted: false,
-      };
-      setMessages([...messages, newMessage]);
+      handleSendMessage("sticker", content);
     }
-      */
   };
 
   const handleRecallMessage = async (messageId: string) => {
     console.log("recall message: ", messageId);
     socket.emit("update message", messageId, user._id);
+    socket.emit("update unread", currentChat._id);
     await recallMessage(messageId);
   };
+
+  const handleUpdateReadCount = async () => {
+    if (
+      !currentChat ||
+      !messages ||
+      memberMap.get(currentChat._id)?.length === 0
+    )
+      return;
+    console.log("update read count: ", currentChat._id);
+    updateReadCount([...messages.values()], currentChat._id);
+  };
+
+  useEffect(() => {
+    if (!currentChat) return;
+    console.log("切換currentChat: ", currentChat);
+    getChatroomInfo(); // 這裡會載入 messages
+    setIsReply(null);
+  }, [currentChat]);
+
+  useEffect(() => {
+    if (
+      !currentChat ||
+      messages.size === 0 ||
+      memberMap.get(currentChat._id)?.length === 0
+    )
+      return;
+
+    console.log("切換currentChat2: ", currentChat);
+
+    handleUpdateReadCount();
+
+    const onMessage = (msg: Message) => {
+      if (msg.chatroom_id === currentChat._id && msg.user._id !== user._id) {
+        handleReceiveMessage(msg);
+        socket.emit("update unread", currentChat._id);
+        if (msg.chatroom_id === currentChat._id) {
+          if (messages) {
+            updateReadCount([...messages.values()], currentChat._id);
+          }
+        }
+      }
+    };
+
+    const onUpdateMessage = (message_id: string, user_id: string) => {
+      if (user_id !== user._id) {
+        handleUpdateMessage(message_id);
+      }
+    };
+
+    const onUpdateLastReadTime = async (chatroom_id: string) => {
+      console.log("update last_read_time: ", chatroom_id);
+      if (chatroom_id === currentChat._id) {
+        await updateLastReadAt(user._id, chatroom_id);
+        updateReadCount([...messages.values()], chatroom_id);
+      }
+    };
+
+    socket.on("chat message", onMessage);
+    socket.on("update message", onUpdateMessage);
+    socket.on("update last_read_time", onUpdateLastReadTime);
+
+    return () => {
+      socket.off("chat message", onMessage);
+      socket.off("update message", onUpdateMessage);
+      socket.off("update last_read_time", onUpdateLastReadTime);
+    };
+  }, [currentChat?._id, messages.size]);
+
+  useEffect(() => {
+    if (!lastMessageRef.current) return;
+    setTimeout(() => {
+      lastMessageRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 50);
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        console.log("Read last message");
+        socket.emit("update last_read_time", currentChat._id);
+        socket.emit("update unread", currentChat._id);
+      }
+    });
+    observer.observe(lastMessageRef.current);
+    return () => {
+      observer.disconnect();
+    };
+  }, [datedMessages]);
 
   return (
     <div
@@ -218,21 +292,30 @@ export function ChatArea({
 
       {/* Messages Area */}
       <div className="relative flex-1 max-h-[calc(100vh-200px)] overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-white to-meow-cream/30">
-        {Object.entries(datedMessages)?.map(([date, msgs]) => {
+        {Object.entries(datedMessages)?.map(([date, msgs], outIndex, arr) => {
+          let lastDate = outIndex === arr.length - 1;
           return (
             <div key={date}>
               <div className="sticky top-0 z-10 bg-white/80 backdrop-blur text-center text-xs text-gray-500 py-2">
                 {dayjs(date).format("YYYY/MM/DD (ddd)")} {/* 上方日期列 */}
               </div>
-              {msgs.map((msg) => (
-                <ChatMessage
-                  key={msg._id}
-                  message={msg}
-                  onRecall={handleRecallMessage}
-                  handleReply={handleReply}
-                  handleCopy={handleCopy}
-                />
-              ))}
+              {msgs.map((msg, index) => {
+                let lastMsg = lastDate && index === msgs.length - 1;
+                return (
+                  <div
+                    key={msg._id}
+                    className="relative"
+                    ref={lastMsg ? lastMessageRef : null}
+                  >
+                    <ChatMessage
+                      message={msg}
+                      onRecall={handleRecallMessage}
+                      handleReply={handleReply}
+                      handleCopy={handleCopy}
+                    />
+                  </div>
+                );
+              })}
             </div>
           );
         })}
@@ -246,7 +329,15 @@ export function ChatArea({
             <div className="ml-5 flex flex-col">
               reply to {isreply.user.username}:
               <br />
-              {isreply.content}
+              {isreply.type === "sticker" ? (
+                <img
+                  src={isreply.content}
+                  alt="sticker"
+                  className="w-16 h-16"
+                />
+              ) : (
+                isreply.content
+              )}
             </div>
             <CircleX
               className="w-4 h-4 cursor-pointer ml-auto"
@@ -266,9 +357,8 @@ export function ChatArea({
 
             <Input
               onKeyDown={(e) => {
-                console.log(e.key);
                 if (e.key === "Enter") {
-                  handleSendMessage();
+                  handleSendMessage("text", message);
                 }
               }}
               value={message}
@@ -277,10 +367,13 @@ export function ChatArea({
               className="flex-1 border-0 bg-transparent placeholder:text-purple-500 focus-visible:ring-0 focus-visible:ring-offset-0"
             />
 
-            <EmojiStickerPicker onSelect={handleEmojiStickerSelect} />
+            <EmojiStickerPicker
+              onSelect={handleEmojiStickerSelect}
+              stickers={stickers}
+            />
 
             <Button
-              onClick={handleSendMessage}
+              onClick={() => handleSendMessage("text", message)}
               disabled={!message.trim()}
               size="sm"
               className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl px-4 transition-all duration-200 shadow-sm"

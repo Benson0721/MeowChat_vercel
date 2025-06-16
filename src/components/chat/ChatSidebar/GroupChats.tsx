@@ -5,8 +5,10 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { Chatroom } from "../../../types/apiType";
-import useChatroomStore from "@/stores/chatroom-store";
+import { Chatroom, ChatroomMember } from "../../../types/apiType";
+import { useMemo } from "react";
+import useChatroomMemberStore from "@/stores/chatroom-member-store";
+import useUserStore from "@/stores/user-store";
 
 interface GroupChatsProps {
   collapsed: boolean;
@@ -23,6 +25,7 @@ export default function GroupChats({
   setCurrentChat,
   currentChat,
 }: GroupChatsProps) {
+  const userMemberMap = useChatroomMemberStore((state) => state.userMemberMap);
 
   return (
     <div>
@@ -83,11 +86,11 @@ export default function GroupChats({
                   <span className="text-lg">{group.avatar}</span>
                 </span>
                 <span className="font-medium">{group.name}</span>
-                {/*group.unread > 0 && (
+                {userMemberMap?.get(group?._id)?.unread_count > 0 && (
                   <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
-                    {group.unread}
+                    {userMemberMap?.get(group?._id)?.unread_count}
                   </span>
-                )*/}
+                )}
               </button>
             )}
           </div>

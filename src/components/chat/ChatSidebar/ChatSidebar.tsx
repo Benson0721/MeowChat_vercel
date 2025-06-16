@@ -43,6 +43,7 @@ import PrivateChats from "./PrivateChats";
 import useUserStore from "@/stores/user-store";
 import LogoutDialog from "../../LogoutDialog";
 import SocketContext from "@/hooks/socketManager";
+import useChatroomMemberStore from "@/stores/chatroom-member-store";
 
 interface ChatSidebarProps {
   collapsed: boolean;
@@ -65,6 +66,9 @@ export function ChatSidebar({
   const [groupChats, setGroupChats] = useState([]);
   const [privateChats, setPrivateChats] = useState([]);
   const [globalChats, setGlobalChats] = useState([]);
+  const updateUnreadCount = useChatroomMemberStore(
+    (state) => state.updateUnreadCount
+  );
 
   useEffect(() => {
     if (chatroomsOrder.group.length > 0) {
@@ -87,10 +91,39 @@ export function ChatSidebar({
   useEffect(() => {
     if (!socket) return;
     socket.emit("join room", currentChat._id);
+
     return () => {
       socket.emit("leave room", currentChat._id);
     };
   }, [currentChat]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const onUpdateUnread = (chatroom_id: string) => {
+      console.log("update unread: ", chatroom_id);
+      updateUnreadCount(user._id, chatroom_id);
+    };
+
+    /*const onUpdateOtherUnread = (chatroom_id: string, user_id: string[]) => {
+      console.log("update other unread: ", chatroom_id, user_id);
+      if (chatroom_id === currentChat._id) {
+        user_id?.forEach((id) => {
+          updateUnreadCount(id, chatroom_id); //傳訊息給別人
+        });
+      }
+    };
+    const onUpdateOwnUnread = (chatroom_id: string, user_id: string) => {
+      console.log("update own unread: ", chatroom_id, user_id);
+      if (chatroom_id === currentChat._id) {
+        updateUnreadCount(user_id, chatroom_id); //已讀
+      }
+    };*/
+    socket.on("update unread", onUpdateUnread);
+    return () => {
+      socket.off("update unread");
+    };
+  }, [socket]);
 
   return (
     <TooltipProvider>

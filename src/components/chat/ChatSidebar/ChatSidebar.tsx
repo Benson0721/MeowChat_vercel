@@ -44,17 +44,20 @@ import useUserStore from "@/stores/user-store";
 import LogoutDialog from "../../LogoutDialog";
 import SocketContext from "@/hooks/socketManager";
 import useChatroomMemberStore from "@/stores/chatroom-member-store";
+import { useIsMobile } from "../../../hooks/use-mobile";
 
 interface ChatSidebarProps {
   collapsed: boolean;
   onToggleCollapsed: () => void;
   onCreateGroup: () => void;
+  setSidebarCollapsed: (collapsed: boolean) => void;
 }
 
 export function ChatSidebar({
   collapsed,
   onToggleCollapsed,
   onCreateGroup,
+  setSidebarCollapsed,
 }: ChatSidebarProps) {
   const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
@@ -66,27 +69,41 @@ export function ChatSidebar({
   const [groupChats, setGroupChats] = useState([]);
   const [privateChats, setPrivateChats] = useState([]);
   const [globalChats, setGlobalChats] = useState([]);
+  const isMobile = useIsMobile();
+  const [isLoading, setIsLoading] = useState(true);
   const updateUnreadCount = useChatroomMemberStore(
     (state) => state.updateUnreadCount
   );
+  const sidebarClass = isMobile
+    ? collapsed
+      ? "hidden" // 手機且折疊 = 隱藏
+      : "w-screen h-screen z-50" // 手機且展開 = 滿版
+    : collapsed
+    ? "w-20" // 桌機且折疊
+    : "w-80"; // 桌機且展開
 
   useEffect(() => {
-    if (chatroomsOrder.group.length > 0) {
-      setGroupChats(
-        chatroomsOrder.group.map((chatroom) => chatroomsMap.get(chatroom))
-      );
+    if (isMobile) {
+      setSidebarCollapsed(true);
     }
-    if (chatroomsOrder.private.length > 0) {
-      setPrivateChats(
-        chatroomsOrder.private.map((chatroom) => chatroomsMap.get(chatroom))
-      );
-    }
-    if (chatroomsOrder.global.length > 0) {
-      setGlobalChats(
-        chatroomsOrder.global.map((chatroom) => chatroomsMap.get(chatroom))
-      );
-    }
-  }, [chatroomsOrder]);
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (!chatroomsOrder) return;
+    setIsLoading(true);
+    setGroupChats(
+      chatroomsOrder.group.map((chatroom) => chatroomsMap.get(chatroom))
+    );
+
+    setPrivateChats(
+      chatroomsOrder.private.map((chatroom) => chatroomsMap.get(chatroom))
+    );
+
+    setGlobalChats(
+      chatroomsOrder.global.map((chatroom) => chatroomsMap.get(chatroom))
+    );
+    setIsLoading(false);
+  }, [chatroomsOrder, chatroomsMap]);
 
   useEffect(() => {
     if (!socket) return;
@@ -128,9 +145,11 @@ export function ChatSidebar({
   return (
     <TooltipProvider>
       <div
-        className={`relative transition-all duration-300 ease-in-out ${
-          collapsed ? "w-16" : "w-80"
-        } bg-white/90 backdrop-blur-sm border-r border-meow-purple/20`}
+        className={`${
+          isMobile ? "absolute left-0" : "relative"
+        } transition-all duration-300 ease-in-out ${sidebarClass}
+
+     bg-white/90 backdrop-blur-sm border-r border-meow-purple/20`}
       >
         {/* Toggle Button */}
         <Button
@@ -146,7 +165,7 @@ export function ChatSidebar({
           )}
         </Button>
 
-        <div className="h-full flex flex-col">
+        <div className={`h-full flex flex-col`}>
           {/* Header */}
           <div
             className="p-4 border-b border-meow-purple/20 hover:cursor-pointer"
@@ -167,13 +186,14 @@ export function ChatSidebar({
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          <div className="flex-1 max-h-[calc(100vh-150px)] hide-scrollbar p-4 space-y-6">
             {/* Global Chat */}
             <GlobalChat
               collapsed={collapsed}
               globalChat={globalChats?.[0]}
               setCurrentChat={setCurrentChat}
               currentChat={currentChat}
+              isLoading={isLoading}
             />
             {!collapsed && <Separator className="bg-meow-purple/20" />}
 
@@ -184,6 +204,7 @@ export function ChatSidebar({
               groupChats={groupChats}
               setCurrentChat={setCurrentChat}
               currentChat={currentChat}
+              isLoading={isLoading}
             />
             {!collapsed && <Separator className="bg-meow-purple/20" />}
 
@@ -193,6 +214,7 @@ export function ChatSidebar({
               privateChats={privateChats}
               setCurrentChat={setCurrentChat}
               currentChat={currentChat}
+              isLoading={isLoading}
             />
           </div>
 
@@ -207,7 +229,7 @@ export function ChatSidebar({
                       className="hover:opacity-80 transition-opacity"
                     >
                       <Avatar className="w-10 h-10">
-                        <AvatarImage src="https://images.unsplash.com/photo-1582562124811-c09040d0a901?w=100&h=100&fit=crop&crop=faces" />
+                        <AvatarImage src={user?.avatar} />
                         <AvatarFallback className="bg-meow-purple text-purple-800">
                           {user?.username}
                         </AvatarFallback>
@@ -224,7 +246,7 @@ export function ChatSidebar({
                   className="relative hover:opacity-80 transition-opacity"
                 >
                   <Avatar className="w-10 h-10">
-                    <AvatarImage src="https://images.unsplash.com/photo-1582562124811-c09040d0a901?w=100&h=100&fit=crop&crop=faces" />
+                    <AvatarImage src={user?.avatar} />
                     <AvatarFallback className="bg-meow-purple text-purple-800">
                       {user?.username}
                     </AvatarFallback>

@@ -1,6 +1,13 @@
 import { create } from "zustand";
 import { Chatroom } from "../types/apiType";
-import { getChatrooms, createChatroom } from "../lib/api/chatroom-api";
+import {
+  getChatrooms,
+  createChatroom,
+  inviteUser,
+  getOneChatroom,
+} from "../lib/api/chatroom-api";
+import useChatroomMemberStore from "./chatroom-member-store";
+import useUserStore from "./user-store";
 
 type Store = {
   chatroomsMap: Map<string, Chatroom>;
@@ -15,6 +22,7 @@ type Store = {
 
 type Action = {
   getChatrooms: (user_id: string) => Promise<void>;
+  getOneChatroom: (chatroom_id: string) => Promise<void>;
   createChatroom: (
     type: string,
     members: string[],
@@ -22,6 +30,7 @@ type Action = {
     name: string
   ) => Promise<void>;
   setCurrentChat: (chatroom: Chatroom) => void;
+  inviteUser: (user_id: string, chatroom_id: string) => Promise<void>;
 };
 
 const useChatroomStore = create<Store & Action>()((set, get) => ({
@@ -63,6 +72,24 @@ const useChatroomStore = create<Store & Action>()((set, get) => ({
       console.error("取得聊天室失敗:", error);
     }
   },
+  getOneChatroom: async (chatroom_id: string) => {
+    try {
+      console.log("getOneChatroom", chatroom_id);
+      const chatroom = await getOneChatroom(chatroom_id);
+      const newMap = new Map(get().chatroomsMap);
+      console.log("chatroom", chatroom);
+      newMap.set(chatroom._id, chatroom);
+      set({
+        chatroomsMap: newMap,
+      });
+      console.log("newMap", newMap);
+      if (get().currentChat._id === chatroom_id) {
+        get().setCurrentChat(chatroom);
+      }
+    } catch (error) {
+      console.error("取得聊天室失敗:", error);
+    }
+  },
   createChatroom: async (
     type: string,
     members: string[],
@@ -85,7 +112,33 @@ const useChatroomStore = create<Store & Action>()((set, get) => ({
             newChatroom._id,
           ],
         },
+        currentChat: newChatroom,
       });
+      useChatroomMemberStore
+        .getState()
+        .getChatroomMember(useUserStore.getState().user._id);
+    } catch (error) {
+      console.error("建立聊天室失敗:", error);
+    }
+  },
+  inviteUser: async (user_id: string, chatroom_id: string) => {
+    try {
+      const updatedChatroom = await inviteUser(chatroom_id, user_id);
+      const newMap = new Map(get().chatroomsMap);
+      newMap.set(updatedChatroom._id, updatedChatroom);
+      set({
+        chatroomsMap: newMap,
+      });
+      if (!get().chatroomsOrder.group.includes(updatedChatroom._id)) {
+        console.log("我沒有這個房間，新增");
+        const newOrder = {
+          ...get().chatroomsOrder,
+          group: [...get().chatroomsOrder.group, updatedChatroom._id],
+        };
+        set({
+          chatroomsOrder: newOrder,
+        });
+      }
     } catch (error) {
       console.error("建立聊天室失敗:", error);
     }

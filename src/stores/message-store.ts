@@ -76,6 +76,7 @@ const useMessageStore = create<Store & Action>((set, get) => ({
   getHistoryMessage: async (chatroom_id: string) => {
     try {
       const messages = await getHistoryMessage(chatroom_id);
+      console.log("history messages: ", messages);
       const newMessageMap = new Map(
         messages.map((message: Message) => [message._id, message])
       ) as Map<string, Message>;
@@ -84,6 +85,7 @@ const useMessageStore = create<Store & Action>((set, get) => ({
         messageMap: newMessageMap,
         messageOrder: messages.map((message: Message) => message._id),
       });
+      console.log("更換後messageMap: ", get().messageMap);
     } catch (error) {
       console.error("取得歷史訊息失敗:", error);
     }

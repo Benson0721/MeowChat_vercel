@@ -3,13 +3,26 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Cat, MessageSquare, Users, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 import useUserStore from "@/stores/user-store";
+import { useEffect } from "react";
+import { useIsMobile } from "../hooks/use-mobile";
 
 const Index = () => {
   const isLogin = useUserStore((state) => state.isLogin);
+  const checkAuth = useUserStore((state) => state.checkAuth);
+  const isMobile = useIsMobile();
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-meow-lavender via-meow-cream to-meow-pink">
-      <header className="p-6 flex justify-between items-center">
-        <div className="flex items-center gap-3">
+      <header
+        className={`p-6 flex ${
+          isMobile ? "justify-center" : "justify-between"
+        } items-center `}
+      >
+        <div className="flex items-center gap-3 ">
           <div className="w-10 h-10 bg-meow-purple rounded-full flex items-center justify-center">
             <Cat className="w-6 h-6 text-purple-800" />
           </div>
@@ -18,7 +31,7 @@ const Index = () => {
           </h1>
         </div>
 
-        <div className="flex gap-3">
+        <div className={`flex gap-3 ${isMobile ? "hidden" : ""}`}>
           <Link to="/login">
             <Button
               variant="outline"
@@ -150,7 +163,7 @@ const Index = () => {
 
       {/* Footer */}
       <footer className="text-center py-8 text-purple-600">
-        <p>&copy; 2025 MeowChat. Made with 💜 for cat lovers everywhere.</p>
+        <p>&copy; 2025 MeowChat.</p>
       </footer>
     </div>
   );

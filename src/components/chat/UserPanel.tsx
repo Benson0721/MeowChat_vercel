@@ -1,14 +1,24 @@
 import { AllUsersList } from "./OnlineUsersList";
+import { useIsMobile } from "@/hooks/use-mobile";
 
-interface UserPanelProps {
-  onStartPrivateChat?: (userId: string, username: string) => void;
-}
-
-export function UserPanel({ onStartPrivateChat }: UserPanelProps) {
-
+export function UserPanel({
+  isGroupChat,
+  setShowUserPanel,
+}: {
+  isGroupChat: boolean;
+  setShowUserPanel: (show: boolean) => void;
+}) {
+  const isMobile = useIsMobile();
   return (
-    <div className="w-80 bg-white border-l border-meow-purple/20 flex flex-col p-4">
-      <AllUsersList  />
+    <div
+      className={`w-80 bg-white border-l border-meow-purple/20 flex flex-col p-4 ${
+        isMobile ? "w-screen absolute left-0 h-screen z-50" : ""
+      }`}
+    >
+      <AllUsersList
+        isGroupChat={isGroupChat}
+        setShowUserPanel={setShowUserPanel}
+      />
     </div>
   );
 }

@@ -10,12 +10,21 @@ export const getOtherUsers = async (user_id: string): Promise<User[]> => {
   return res.data;
 };
 
+export const checkAuth = async (): Promise<{
+  isAuthenticated: boolean;
+  user: User;
+}> => {
+  const res = await axiosInstance.get("/api/user/checkAuth");
+  return res.data;
+};
+
 export const editUser = async (
   _id: string,
   username: string,
   avatar: string
 ): Promise<User> => {
-  const res = await axiosInstance.put(`/api/user/${_id}`, {
+  const res = await axiosInstance.put(`/api/user/`, {
+    _id,
     username,
     avatar,
   });

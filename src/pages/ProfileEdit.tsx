@@ -1,55 +1,67 @@
-
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { toast } from "@/components/ui/sonner";
+import { ArrowLeft } from "lucide-react";
+//import { useToast } from "@/hooks/use-toast";
+import useUserStore from "@/stores/user-store";
 
 const avatarOptions = [
-  'https://images.unsplash.com/photo-1535268647677-300dbf3d78d1?w=100&h=100&fit=crop&crop=faces',
-  'https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?w=100&h=100&fit=crop&crop=faces',
-  'https://images.unsplash.com/photo-1485833077593-4278bba3f11f?w=100&h=100&fit=crop&crop=faces',
-  'https://images.unsplash.com/photo-1501286353178-1ec881214838?w=100&h=100&fit=crop&crop=faces',
-  '', // Empty for default avatar
+  "https://images.unsplash.com/photo-1535268647677-300dbf3d78d1?w=100&h=100&fit=crop&crop=faces",
+  "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?w=100&h=100&fit=crop&crop=faces",
+  "https://images.unsplash.com/photo-1485833077593-4278bba3f11f?w=100&h=100&fit=crop&crop=faces",
+  "https://images.unsplash.com/photo-1501286353178-1ec881214838?w=100&h=100&fit=crop&crop=faces",
+  "", // Empty for default avatar
 ];
 
 const ProfileEdit = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [username, setUsername] = useState('You');
-  const [selectedAvatar, setSelectedAvatar] = useState(avatarOptions[0]);
-  const [error, setError] = useState('');
+  const [username, setUsername] = useState("");
+  const [selectedAvatar, setSelectedAvatar] = useState("");
+  const [error, setError] = useState("");
+  const user = useUserStore((state) => state.user);
+  const editUser = useUserStore((state) => state.editUser);
 
-  const handleSave = () => {
+  useEffect(() => {
+    if (!user) return;
+    setUsername(user.username);
+    setSelectedAvatar(user.avatar);
+  }, [user]);
+
+  const handleSave = async () => {
     if (!username.trim()) {
-      setError('Username is required');
+      setError("Username is required");
       return;
     }
 
     if (username.trim().length < 2) {
-      setError('Username must be at least 2 characters');
+      setError("Username must be at least 2 characters");
       return;
     }
 
     // Save to localStorage (in a real app, this would be an API call)
-    const user = JSON.parse(localStorage.getItem('meowchat_user') || '{}');
     const updatedUser = {
       ...user,
       username: username.trim(),
-      avatar: selectedAvatar
+      avatar: selectedAvatar,
     };
-    localStorage.setItem('meowchat_user', JSON.stringify(updatedUser));
+    await editUser(updatedUser);
 
-    toast({
-      title: "Profile Updated",
-      description: "Your profile has been successfully updated!",
+    toast("Your profile has been successfully updated!☺️☺️", {
+      duration: 5000,
     });
 
-    navigate('/chat');
+    navigate("/chat");
   };
 
   return (
@@ -60,7 +72,7 @@ const ProfileEdit = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('/chat')}
+              onClick={() => navigate("/chat")}
               className="rounded-xl hover:bg-meow-purple/50"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -75,7 +87,7 @@ const ProfileEdit = () => {
             </div>
           </div>
         </CardHeader>
-        
+
         <CardContent className="space-y-6">
           {/* Avatar Selection */}
           <div className="space-y-3">
@@ -87,14 +99,16 @@ const ProfileEdit = () => {
                   onClick={() => setSelectedAvatar(avatar)}
                   className={`p-2 rounded-xl border-2 transition-all ${
                     selectedAvatar === avatar
-                      ? 'border-purple-500 bg-meow-purple/20'
-                      : 'border-meow-purple/20 hover:border-purple-300'
+                      ? "border-purple-500 bg-meow-purple/20"
+                      : "border-meow-purple/20 hover:border-purple-300"
                   }`}
                 >
                   <Avatar className="w-12 h-12 mx-auto">
                     <AvatarImage src={avatar} />
                     <AvatarFallback className="bg-meow-pink text-purple-800">
-                      {index === avatarOptions.length - 1 ? 'You' : `A${index + 1}`}
+                      {index === avatarOptions.length - 1
+                        ? `${user.username}`
+                        : `A${index + 1}`}
                     </AvatarFallback>
                   </Avatar>
                 </button>
@@ -112,7 +126,7 @@ const ProfileEdit = () => {
               value={username}
               onChange={(e) => {
                 setUsername(e.target.value);
-                setError('');
+                setError("");
               }}
               placeholder="Enter your username"
               className="rounded-xl border-meow-purple/20 focus:border-purple-500 focus:ring-purple-500/20"

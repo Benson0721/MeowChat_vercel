@@ -2,15 +2,12 @@ import { axiosInstance } from "./axios-config";
 import { ChatroomMemberList } from "../../types/apiType";
 
 export const getChatroomMember = async (user_id: string) => {
-  const chatroom = await axiosInstance.get<ChatroomMemberList>(
-    `/api/chatroom/member`,
-    {
-      params: {
-        user_id,
-      },
-    }
-  );
-  return chatroom.data;
+  const res = await axiosInstance.get<ChatroomMemberList>(`/api/member`, {
+    params: {
+      user_id,
+    },
+  });
+  return res.data;
 };
 
 export const updateLastReadAt = async (
@@ -18,12 +15,12 @@ export const updateLastReadAt = async (
   chatroom_id: string
 ) => {
   try {
-    const chatroom = await axiosInstance.patch(`/api/chatroom/member`, {
+    const res = await axiosInstance.patch(`/api/member`, {
       user_id,
       chatroom_id,
       last_read_at: Date.now(),
     });
-    return chatroom.data;
+    return res.data;
   } catch (err) {
     console.error("❌ 更新 last_read_at 時發生錯誤:", err);
     return null;
@@ -35,7 +32,7 @@ export const updateUnreadCount = async (
   chatroom_id: string
 ) => {
   try {
-    const res = await axiosInstance.put("/api/chatroom/member", {
+    const res = await axiosInstance.put("/api/member", {
       user_id,
       chatroom_id,
     });
@@ -43,6 +40,23 @@ export const updateUnreadCount = async (
     return res.data;
   } catch (err) {
     console.error("❌ 更新 unread 時發生錯誤:", err);
+    return null;
+  }
+};
+
+export const addChatroomMember = async (
+  user_id: string,
+  chatroom_id: string
+) => {
+  try {
+    const res = await axiosInstance.post("/api/member", {
+      user_id,
+      chatroom_id,
+    });
+
+    return res.data;
+  } catch (err) {
+    console.error("❌ 添加聊天室成員時發生錯誤:", err);
     return null;
   }
 };

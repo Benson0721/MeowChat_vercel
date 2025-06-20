@@ -1,9 +1,10 @@
 import { create } from "zustand";
-import { ChatroomMember, Message } from "../types/apiType";
+import { ChatroomMember, Chatroom, Message } from "../types/apiType";
 import {
   getChatroomMember,
   updateLastReadAt,
   updateUnreadCount,
+  addChatroomMember,
 } from "../lib/api/chatroom-member-api";
 
 type Store = {
@@ -24,7 +25,8 @@ type Action = {
   getChatroomMember: (user_id: string) => Promise<void>;
   updateLastReadAt: (user_id: string, chatroom_id: string) => Promise<void>;
   updateUnreadCount: (user_id: string, chatroom_id: string) => Promise<void>;
-  updateReadCount: (message: Message[], chatroom_id: string) => Promise<void>;
+  updateReadCount: (message: Message[], chatroom: Chatroom) => Promise<void>;
+  addChatroomMember: (user_id: string, chatroom_id: string) => Promise<void>;
 };
 
 const useChatroomMemberStore = create<Store & Action>()((set, get) => ({
@@ -48,13 +50,11 @@ const useChatroomMemberStore = create<Store & Action>()((set, get) => ({
   getChatroomMember: async (user_id: string) => {
     try {
       const chatroomMemberList = await getChatroomMember(user_id);
-      console.log("chatroomMemberList: ", chatroomMemberList);
       const memberMap = new Map<string, ChatroomMember[]>();
 
       Object.entries(chatroomMemberList).forEach(([chatroom_id, value]) => {
         memberMap.set(chatroom_id, value.members);
       });
-      console.log("memberMap: ", memberMap);
       const { userMemberMap, otherMemberMap } = get().refreshMaps(
         memberMap,
         user_id
@@ -70,6 +70,7 @@ const useChatroomMemberStore = create<Store & Action>()((set, get) => ({
   },
   updateLastReadAt: async (user_id: string, chatroom_id: string) => {
     try {
+      console.log("更新使用者已讀時間", user_id, chatroom_id);
       const chatroomMember = await updateLastReadAt(user_id, chatroom_id);
 
       const memberMapArray = get().memberMap.get(chatroom_id);
@@ -82,18 +83,16 @@ const useChatroomMemberStore = create<Store & Action>()((set, get) => ({
 
       const newMap = new Map(get().memberMap);
       newMap.set(chatroom_id, memberMapArray);
-      console.log("newMap: ", newMap);
       const { userMemberMap, otherMemberMap } = get().refreshMaps(
         newMap,
         user_id
       );
-      console.log("userMemberMap: ", userMemberMap);
-      console.log("otherMemberMap: ", otherMemberMap);
       set({
         memberMap: newMap,
         userMemberMap: userMemberMap,
         otherMemberMap: otherMemberMap,
       });
+      console.log("更新最新已讀時間完成: ", get().memberMap);
     } catch (error) {
       console.error("更新聊天室失敗:", error);
     }
@@ -123,19 +122,30 @@ const useChatroomMemberStore = create<Store & Action>()((set, get) => ({
       console.error("更新聊天室失敗:", error);
     }
   },
-  updateReadCount: async (messages: Message[], chatroom_id: string) => {
+  updateReadCount: async (messages: Message[], chatroom: Chatroom) => {
     try {
-      console.log("update read count: ", chatroom_id);
-      console.log("messages: ", messages);
-      const memberMapArray = get().memberMap.get(chatroom_id);
-      console.log("memberMapArray: ", memberMapArray);
+      console.log("我應該要等已讀時間更新完成");
+      console.log("更新已讀數-我拿到的room ", chatroom);
+      console.log("更新已讀數-messages: ", messages);
+      const memberMapArray = get().memberMap.get(chatroom._id);
+      console.log("更新已讀數-memberMapArray: ", memberMapArray);
 
       const newMap = new Map<string, number>();
       messages.forEach((message) => {
         if (!Array.isArray(memberMapArray)) return;
         const readMember = memberMapArray.filter((member) => {
-          console.log("last read at: ", new Date(member.last_read_at));
+          /* console.log(
+            "last read at: ",
+            new Date(member.last_read_at),
+            "message為:",
+            message
+          );
           console.log("message created at: ", new Date(message.createdAt));
+          console.log(
+            "已讀時間大於創建時間",
+            new Date(member.last_read_at).getTime() >
+              new Date(message.createdAt).getTime()
+          );*/
           return (
             member.user_id !== message.user._id &&
             new Date(member.last_read_at).getTime() >
@@ -151,6 +161,27 @@ const useChatroomMemberStore = create<Store & Action>()((set, get) => ({
       console.log("readCount: ", get().readCount);
     } catch (error) {
       console.error("更新聊天室失敗:", error);
+    }
+  },
+  addChatroomMember: async (user_id: string, chatroom_id: string) => {
+    try {
+      const chatroomMember = await addChatroomMember(user_id, chatroom_id);
+      const memberMapArray = get().memberMap.get(chatroom_id);
+      if (!Array.isArray(memberMapArray)) return;
+      memberMapArray?.push(chatroomMember);
+      const newMap = new Map(get().memberMap);
+      newMap.set(chatroom_id, memberMapArray);
+      const { userMemberMap, otherMemberMap } = get().refreshMaps(
+        newMap,
+        user_id
+      );
+      set({
+        memberMap: newMap,
+        userMemberMap: userMemberMap,
+        otherMemberMap: otherMemberMap,
+      });
+    } catch (error) {
+      console.error("添加聊天室成員失敗:", error);
     }
   },
 }));

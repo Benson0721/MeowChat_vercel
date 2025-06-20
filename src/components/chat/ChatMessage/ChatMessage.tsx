@@ -14,7 +14,6 @@ import { Message } from "../../../types/apiType";
 import useUserStore from "@/stores/user-store";
 import useChatroomMemberStore from "@/stores/chatroom-member-store";
 import MessageMenuComponent from "./MessageMenuComponent";
-import useChatroomStore from "@/stores/chatroom-store";
 import { timeParser } from "@/utils/TimeParser";
 
 interface ChatMessageProps {
@@ -31,7 +30,6 @@ export function ChatMessage({
   handleCopy,
 }: ChatMessageProps) {
   const [showActions, setShowActions] = useState(false);
-  const [isReadCount, setIsReadCount] = useState(0);
   const [reactions, setReactions] = useState<Record<string, number>>({});
   const user = useUserStore((state) => state.user);
 
@@ -52,26 +50,8 @@ export function ChatMessage({
     }
   };
   useEffect(() => {
-    console.log(`👀 渲染 message: ${message._id}, readCount: ${readCount}`);
+    console.log(`👀 渲染 message: ${message.content}, readCount: ${readCount}`);
   }, [readCount]);
-  /* useEffect(() => {
-    if (!otherMemberMap?.get(currentChat._id)) return;
-    const members = otherMemberMap.get(currentChat._id);
-    if (!Array.isArray(members)) return;
-
-    const isReadCount = members.filter(
-      (m) =>
-        new Date(m.last_read_at).getTime() >
-        new Date(message.createdAt).getTime()
-    ).length;
-
-    setIsReadCount(isReadCount);
-    console.log("isReadCount: ", message._id, isReadCount); // 建議加 message id 辨識
-  }, [
-    otherMemberMap,
-    currentChat._id,
-    message.createdAt, // 這樣比 object 好
-  ]);*/
 
   return (
     <div className="flex flex-col">
@@ -270,31 +250,4 @@ export function ChatMessage({
       </div>
     </div>
   );
-}
-
-{
-  /*isReadCount > 0 ? (
-  isReadCount > 1 ? (
-    <Badge
-      variant="secondary"
-      className="text-xs bg-green-100 text-green-800"
-    >
-      {isReadCount} Read
-    </Badge>
-  ) : (
-    <Badge
-      variant="secondary"
-      className="text-xs bg-green-100 text-green-800"
-    >
-      Read
-    </Badge>
-  )
-) : (
-  <Badge
-    variant="secondary"
-    className="text-xs bg-blue-100 text-blue-800"
-  >
-    Unread
-  </Badge>
-)*/
 }

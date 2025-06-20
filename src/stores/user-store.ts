@@ -8,6 +8,7 @@ import {
   login,
   signup,
   changeStatus,
+  checkAuth,
 } from "../lib/api/user-api";
 
 type Store = {
@@ -19,6 +20,7 @@ type Store = {
 
 type Action = {
   setOtherUsers: (users: Map<string, User>) => void;
+  checkAuth: () => void;
   getOtherUsers: (user_id: string) => Promise<void>;
   editUser: (user: User) => Promise<void>;
   changeStatus: (user: User, status: string) => Promise<void>;
@@ -43,6 +45,19 @@ const useUserStore = create<Store & Action>()(
       otherUsersMap: new Map<string, User>(),
       otherUsersOrder: [],
       isLogin: false,
+
+      checkAuth: async () => {
+        const res = await checkAuth();
+        if (res.isAuthenticated) {
+          set({ isLogin: true });
+          set({ user: res.user });
+        } else {
+          set({ isLogin: false });
+          set({
+            user: { _id: "", username: "", avatar: "", status: "offline" },
+          });
+        }
+      },
 
       setOtherUsers: (users: Map<string, User>) => {
         const OnlineUsers = Array.from(users.values()).filter(

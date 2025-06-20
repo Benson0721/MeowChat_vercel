@@ -12,7 +12,6 @@ export const SocketProvider = ({ children }) => {
 
   function connectSocket(userId: string): void {
     if (!socket) {
-      console.log("user connected:", userId);
       setSocket(() =>
         io(import.meta.env.VITE_SOCKET_URL || "http://localhost:5000", {
           query: { userId },

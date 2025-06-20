@@ -70,7 +70,6 @@ const Register = () => {
   const handleRegister: SubmitHandler<Inputs> = async (data: Inputs) => {
     setError("");
     setIsLoading(true);
-    console.log(errors);
     try {
       await signupHandler(data.email, data.password, data.username);
       navigate("/chat");

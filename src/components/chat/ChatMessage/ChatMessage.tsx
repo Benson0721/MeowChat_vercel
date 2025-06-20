@@ -49,9 +49,6 @@ export function ChatMessage({
       onRecall(messageId);
     }
   };
-  useEffect(() => {
-    console.log(`👀 渲染 message: ${message.content}, readCount: ${readCount}`);
-  }, [readCount]);
 
   return (
     <div className="flex flex-col">

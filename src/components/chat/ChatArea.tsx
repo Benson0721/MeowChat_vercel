@@ -89,7 +89,6 @@ export function ChatArea({
   };
 
   const getChatroomInfo = async () => {
-    console.log("getChatroomInfo: ", currentChat);
     await getHistoryMessage(currentChat?._id);
     await getChatroomMember(user?._id);
     await getAllSticker();
@@ -122,13 +121,6 @@ export function ChatArea({
         isreply?._id
       );
       socket.emit("chat message", newMessage, currentChat._id);
-      /*if (newMessage.user._id === user._id) {
-        console.log("我方發送");
-        //const otherUserId = otherMemberMap.get(currentChat._id);
-
-        //console.log("otherUserId: ", otherUserId);
-        //socket.emit("update other unread", currentChat._id, otherUserId); //增加對方未讀
-      }*/
       setMessage("");
       setIsReply(null);
     }
@@ -146,7 +138,6 @@ export function ChatArea({
   };
 
   const handleRecallMessage = async (messageId: string) => {
-    console.log("recall message: ", messageId);
     socket.emit("update message", messageId, user._id);
     socket.emit("update unread", currentChat._id);
     await recallMessage(messageId);
@@ -159,13 +150,11 @@ export function ChatArea({
       memberMap.get(currentChat._id)?.length === 0
     )
       return;
-    console.log("update read count: ", currentChat);
     updateReadCount(messages, currentChat);
   };
 
   useEffect(() => {
     if (!currentChat) return;
-    console.log("切換currentChat: ", currentChat);
     setIsFetching(true);
     getChatroomInfo().then(() => {
       setIsReply(null);
@@ -182,8 +171,6 @@ export function ChatArea({
       !socket
     )
       return;
-
-    console.log("切換currentChat2: ", currentChat);
 
     handleUpdateReadCount();
 
@@ -209,9 +196,6 @@ export function ChatArea({
       chatroom_id: string,
       user_id: string
     ) => {
-      console.log("我也有接收到!!!");
-      console.log("update last_read_time: ", chatroom_id);
-      console.log("user_id: ", user_id);
       await updateLastReadAt(user_id, chatroom_id);
       updateReadCount(messages, currentChat);
     };
@@ -230,13 +214,11 @@ export function ChatArea({
   useEffect(() => {
     const observerfunc = () => {
       if (!lastMessageRef.current) return;
-      console.log("使用者回到葉面", currentChat);
       setTimeout(() => {
         lastMessageRef.current?.scrollIntoView({ behavior: "smooth" });
       }, 50);
       observer = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting) {
-          console.log("Read last message");
           socket?.emit("update last_read_time", currentChat?._id, user._id);
           socket?.emit("update unread", currentChat?._id);
         }

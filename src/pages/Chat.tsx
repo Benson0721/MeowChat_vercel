@@ -86,18 +86,13 @@ const Chat = () => {
     if (!user) return navigate("/login");
     const startChat = () => {
       setCurrentChat(chatroomsMap.get(chatroomsOrder.global[0]));
-      console.log("user connected:", user._id);
       connectSocket(user._id);
       if (!socket) return;
-      socket.on("connect", () => {
-        console.log("Connected to server");
-      });
+      socket.on("connect", () => {});
       socket.on("user-status-online", (userId: string) => {
-        console.log("user online:", userId);
         statusHandler(userId, "online");
       });
       socket.on("user-status-offline", (userId: string) => {
-        console.log("user offline:", userId);
         statusHandler(userId, "offline");
       });
       socket.on(
@@ -148,7 +143,6 @@ const Chat = () => {
       socket.on(
         "invite accepted",
         (chatroom_id: string, targetUser_id: string) => {
-          console.log("invite accepted: " + chatroom_id + targetUser_id);
           acceptInviteHandler(chatroom_id, targetUser_id);
         }
       );

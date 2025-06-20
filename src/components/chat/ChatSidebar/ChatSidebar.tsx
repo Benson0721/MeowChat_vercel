@@ -109,6 +109,10 @@ export function ChatSidebar({
     if (!socket) return;
     socket.emit("join room", currentChat._id);
 
+    if (isMobile) {
+      onToggleCollapsed();
+    }
+
     return () => {
       socket.emit("leave room", currentChat._id);
     };

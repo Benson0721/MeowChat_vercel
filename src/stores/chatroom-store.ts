@@ -74,15 +74,12 @@ const useChatroomStore = create<Store & Action>()((set, get) => ({
   },
   getOneChatroom: async (chatroom_id: string) => {
     try {
-      console.log("getOneChatroom", chatroom_id);
       const chatroom = await getOneChatroom(chatroom_id);
       const newMap = new Map(get().chatroomsMap);
-      console.log("chatroom", chatroom);
       newMap.set(chatroom._id, chatroom);
       set({
         chatroomsMap: newMap,
       });
-      console.log("newMap", newMap);
       if (get().currentChat._id === chatroom_id) {
         get().setCurrentChat(chatroom);
       }
@@ -130,7 +127,6 @@ const useChatroomStore = create<Store & Action>()((set, get) => ({
         chatroomsMap: newMap,
       });
       if (!get().chatroomsOrder.group.includes(updatedChatroom._id)) {
-        console.log("我沒有這個房間，新增");
         const newOrder = {
           ...get().chatroomsOrder,
           group: [...get().chatroomsOrder.group, updatedChatroom._id],

@@ -70,7 +70,6 @@ const useChatroomMemberStore = create<Store & Action>()((set, get) => ({
   },
   updateLastReadAt: async (user_id: string, chatroom_id: string) => {
     try {
-      console.log("更新使用者已讀時間", user_id, chatroom_id);
       const chatroomMember = await updateLastReadAt(user_id, chatroom_id);
 
       const memberMapArray = get().memberMap.get(chatroom_id);
@@ -92,7 +91,6 @@ const useChatroomMemberStore = create<Store & Action>()((set, get) => ({
         userMemberMap: userMemberMap,
         otherMemberMap: otherMemberMap,
       });
-      console.log("更新最新已讀時間完成: ", get().memberMap);
     } catch (error) {
       console.error("更新聊天室失敗:", error);
     }
@@ -124,28 +122,13 @@ const useChatroomMemberStore = create<Store & Action>()((set, get) => ({
   },
   updateReadCount: async (messages: Message[], chatroom: Chatroom) => {
     try {
-      console.log("我應該要等已讀時間更新完成");
-      console.log("更新已讀數-我拿到的room ", chatroom);
-      console.log("更新已讀數-messages: ", messages);
       const memberMapArray = get().memberMap.get(chatroom._id);
-      console.log("更新已讀數-memberMapArray: ", memberMapArray);
 
       const newMap = new Map<string, number>();
       messages.forEach((message) => {
         if (!Array.isArray(memberMapArray)) return;
         const readMember = memberMapArray.filter((member) => {
-          /* console.log(
-            "last read at: ",
-            new Date(member.last_read_at),
-            "message為:",
-            message
-          );
-          console.log("message created at: ", new Date(message.createdAt));
-          console.log(
-            "已讀時間大於創建時間",
-            new Date(member.last_read_at).getTime() >
-              new Date(message.createdAt).getTime()
-          );*/
+    
           return (
             member.user_id !== message.user._id &&
             new Date(member.last_read_at).getTime() >
@@ -158,7 +141,6 @@ const useChatroomMemberStore = create<Store & Action>()((set, get) => ({
       set({
         readCount: readCount,
       });
-      console.log("readCount: ", get().readCount);
     } catch (error) {
       console.error("更新聊天室失敗:", error);
     }

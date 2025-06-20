@@ -22,14 +22,19 @@ import { getSticker } from "@/lib/api/sticker-api";
 import SocketContext from "@/hooks/socketManager";
 import { Message } from "@/types/apiType";
 import dayjs from "dayjs";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ChatAreaProps {
   onToggleUserPanel: () => void;
   showUserPanel: boolean;
   sidebarCollapsed: boolean;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
 }
 
 export function ChatArea({
+  onToggleCollapsed,
+  collapsed,
   onToggleUserPanel,
   showUserPanel,
   sidebarCollapsed,
@@ -57,6 +62,7 @@ export function ChatArea({
   const updateReadCount = useChatroomMemberStore(
     (state) => state.updateReadCount
   );
+  const isMobile = useIsMobile();
 
   const user = useUserStore((state) => state.user);
   const [message, setMessage] = useState("");
@@ -269,6 +275,20 @@ export function ChatArea({
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-meow-lavender rounded-full flex items-center justify-center">
+              {isMobile && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onToggleCollapsed}
+                  className="absolute -left-3 top-6 z-10 h-6 w-6 rounded-full bg-white border border-meow-purple/20 shadow-sm hover:bg-meow-purple/50 transition-colors"
+                >
+                  {collapsed ? (
+                    <ChevronRight className="w-3 h-3" />
+                  ) : (
+                    <ChevronLeft className="w-3 h-3" />
+                  )}
+                </Button>
+              )}
               <Avatar className="w-6 h-6">
                 <AvatarImage
                   src={

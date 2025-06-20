@@ -1,4 +1,4 @@
-import { createContext, useState, useMemo, useEffect } from "react";
+import { createContext, useState, useMemo } from "react";
 import { io, Socket } from "socket.io-client";
 
 const SocketContext = createContext({
@@ -14,7 +14,7 @@ export const SocketProvider = ({ children }) => {
     if (!socket) {
       console.log("user connected:", userId);
       setSocket(() =>
-        io(import.meta.env.VITE_SOCKET_URL || "http://localhost:3000", {
+        io(import.meta.env.VITE_SOCKET_URL || "http://localhost:5000", {
           query: { userId },
         })
       );
@@ -27,10 +27,6 @@ export const SocketProvider = ({ children }) => {
       setSocket(() => null);
     }
   }
-
-  /*export const socket = io(SOCKET_URL, {
-      query: { userId }, // 可搭配 token 驗證也行
-    });*/
 
   const contextValue = useMemo(
     () => ({

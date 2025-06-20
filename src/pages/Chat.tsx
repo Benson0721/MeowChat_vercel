@@ -172,6 +172,8 @@ const Chat = () => {
           setSidebarCollapsed={setSidebarCollapsed}
         />
         <ChatArea
+          collapsed={sidebarCollapsed}
+          onToggleCollapsed={() => setSidebarCollapsed(!sidebarCollapsed)}
           onToggleUserPanel={() => setShowUserPanel(!showUserPanel)}
           showUserPanel={showUserPanel}
           sidebarCollapsed={sidebarCollapsed}

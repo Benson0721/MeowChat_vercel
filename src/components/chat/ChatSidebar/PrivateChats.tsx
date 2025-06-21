@@ -35,6 +35,19 @@ export default function PrivateChats({
     chat.name = otherUser.get(chat.members[0])?.username;
     return chat;
   });
+
+  const userStateStyle = (status: string) => {
+    switch (status) {
+      case "online":
+        return "bg-green-300";
+      case "away":
+        return "bg-yellow-300";
+      case "offline":
+        return "bg-gray-300";
+      default:
+        return "bg-gray-300";
+    }
+  };
   return (
     <div>
       {!collapsed && (
@@ -78,12 +91,9 @@ export default function PrivateChats({
                             </AvatarFallback>
                           </Avatar>
                           <div
-                            className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white ${
-                              otherUser.get(privateChat.members[0])?.status ===
-                              "online"
-                                ? "bg-green-500"
-                                : "bg-gray-300"
-                            }`}
+                            className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white ${userStateStyle(
+                              otherUser.get(privateChat.members[0])?.status
+                            )}`}
                           />
                         </div>
                       </Button>
@@ -115,12 +125,9 @@ export default function PrivateChats({
                         </AvatarFallback>
                       </Avatar>
                       <div
-                        className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white ${
-                          otherUser.get(privateChat.members[0])?.status ===
-                          "online"
-                            ? "bg-green-500"
-                            : "bg-gray-300"
-                        }`}
+                        className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white ${userStateStyle(
+                          otherUser.get(privateChat.members[0])?.status
+                        )}`}
                       />
                     </div>
                     <span className="font-medium text-sm">

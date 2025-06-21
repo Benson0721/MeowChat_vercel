@@ -11,12 +11,18 @@ import {
 import { Button } from "@/components/ui/button";
 import useUserStore from "@/stores/user-store";
 import { LogOut } from "lucide-react";
+import { useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import SocketContext from "@/hooks/socketManager";
 
 export default function LogoutDialog() {
   const logout = useUserStore((state) => state.logoutHandler);
   const navigate = useNavigate();
+  const { socket } = useContext(SocketContext);
+  const user = useUserStore((state) => state.user);
   const logoutHandler = async () => {
+    if (!socket) return;
+    socket.emit("logout", user._id);
     await logout();
     navigate("/");
   };

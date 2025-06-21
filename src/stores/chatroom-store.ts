@@ -94,23 +94,35 @@ const useChatroomStore = create<Store & Action>()((set, get) => ({
     name: string
   ) => {
     try {
+      const existing = get().privateChatrooms.find((chatroom) =>
+        chatroom.members.includes(
+          members.find((member) => member !== useUserStore.getState().user._id)
+        )
+      );
+      if (existing) return;
+
       const newChatroom = await createChatroom({
         type,
         members,
         avatar,
         name,
       });
+      const newMap = new Map(get().chatroomsMap);
+      newMap.set(newChatroom._id, newChatroom);
+      const newOrder = {
+        ...get().chatroomsOrder,
+        [newChatroom.type]: [
+          ...get().chatroomsOrder[newChatroom.type],
+          newChatroom._id,
+        ],
+      };
       set({
-        chatroomsMap: get().chatroomsMap.set(newChatroom._id, newChatroom),
-        chatroomsOrder: {
-          ...get().chatroomsOrder,
-          [newChatroom.type]: [
-            ...get().chatroomsOrder[newChatroom.type],
-            newChatroom._id,
-          ],
-        },
+        chatroomsMap: newMap,
+        chatroomsOrder: newOrder,
         currentChat: newChatroom,
+        privateChatrooms: newChatroom.type === "private" ? [...get().privateChatrooms, newChatroom] : get().privateChatrooms,
       });
+
       useChatroomMemberStore
         .getState()
         .getChatroomMember(useUserStore.getState().user._id);

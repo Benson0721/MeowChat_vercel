@@ -92,6 +92,9 @@ const Chat = () => {
       socket.on("user-status-online", (userId: string) => {
         statusHandler(userId, "online");
       });
+      socket.on("user-status-away", (userId: string) => {
+        statusHandler(userId, "away");
+      });
       socket.on("user-status-offline", (userId: string) => {
         statusHandler(userId, "offline");
       });

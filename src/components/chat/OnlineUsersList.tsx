@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ export function AllUsersList({
   isGroupChat: boolean;
   setShowUserPanel: (show: boolean) => void;
 }) {
+  const [isCreating, setIsCreating] = useState(false);
   const user = useUserStore((state) => state.user);
   const otherUsersMap = useUserStore((state) => state.otherUsersMap);
   const otherUsersOrder = useUserStore((state) => state.otherUsersOrder);
@@ -23,7 +24,6 @@ export function AllUsersList({
     (user) => otherUsersMap.get(user)?.status === "online"
   ).length;
   const currentChat = useChatroomStore((state) => state.currentChat);
-  const privateChatrooms = useChatroomStore((state) => state.privateChatrooms);
   const createPrivateChat = useChatroomStore((state) => state.createChatroom);
 
   const { socket } = useContext(SocketContext);
@@ -40,13 +40,30 @@ export function AllUsersList({
     member: string[],
     inspactMember: string
   ) => {
+    if (isCreating) return;
+    const privateChatrooms = useChatroomStore.getState().privateChatrooms;
     let ignoreCreatePrivateChat = privateChatrooms.find((chatroom) =>
       chatroom.members.includes(inspactMember)
     ); //避免重複創建
     if (ignoreCreatePrivateChat) {
       return;
     }
+    setIsCreating(true);
     await createPrivateChat(type, member, "", "");
+    setIsCreating(false);
+  };
+
+  const userStateStyle = (type: string, status: string) => {
+    switch (status) {
+      case "online":
+        return `${type}-green-300`;
+      case "away":
+        return `${type}-yellow-300`;
+      case "offline":
+        return `${type}-gray-300`;
+      default:
+        return `${type}-gray-300`;
+    }
   };
 
   return (
@@ -92,11 +109,10 @@ export function AllUsersList({
                   </AvatarFallback>
                 </Avatar>
                 <div
-                  className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
-                    otherUserMap.status === "online"
-                      ? "bg-green-500"
-                      : "bg-gray-300"
-                  }`}
+                  className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${userStateStyle(
+                    "bg",
+                    otherUserMap.status
+                  )}`}
                 />
               </div>
 
@@ -109,11 +125,10 @@ export function AllUsersList({
                   ) : null}
                 </p>
                 <p
-                  className={`text-xs ${
-                    otherUserMap.status === "online"
-                      ? "text-green-600"
-                      : "text-gray-600"
-                  }`}
+                  className={`text-xs ${userStateStyle(
+                    "text",
+                    otherUserMap.status
+                  )}`}
                 >
                   {otherUserMap.status}
                 </p>

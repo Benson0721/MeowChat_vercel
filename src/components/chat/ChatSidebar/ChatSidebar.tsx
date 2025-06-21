@@ -45,6 +45,7 @@ import LogoutDialog from "../../LogoutDialog";
 import SocketContext from "@/hooks/socketManager";
 import useChatroomMemberStore from "@/stores/chatroom-member-store";
 import { useIsMobile } from "../../../hooks/use-mobile";
+import { Message } from "@/types/apiType";
 
 interface ChatSidebarProps {
   collapsed: boolean;
@@ -61,6 +62,7 @@ export function ChatSidebar({
 }: ChatSidebarProps) {
   const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
+  const getChatrooms = useChatroomStore((state) => state.getChatrooms);
   const chatroomsMap = useChatroomStore((state) => state.chatroomsMap);
   const chatroomsOrder = useChatroomStore((state) => state.chatroomsOrder);
   const setCurrentChat = useChatroomStore((state) => state.setCurrentChat);
@@ -126,25 +128,35 @@ export function ChatSidebar({
       updateUnreadCount(user._id, chatroom_id);
     };
 
-    /*const onUpdateOtherUnread = (chatroom_id: string, user_id: string[]) => {
-      console.log("update other unread: ", chatroom_id, user_id);
-      if (chatroom_id === currentChat._id) {
-        user_id?.forEach((id) => {
-          updateUnreadCount(id, chatroom_id); //傳訊息給別人
-        });
+    socket.on("chat message", (msg: Message, room_id: string) => {
+      console.log("收到訊息chat message: ", msg, room_id);
+      const existing = useChatroomStore.getState().chatroomsMap.get(room_id);
+      if (!existing) {
+        // ⛳ 第一次收到來自陌生聊天室的訊息
+        const newChatroom = {
+          _id: room_id,
+          members: [msg.user._id, user._id],
+          name: msg.user.username,
+          type: "private",
+          avatar: msg.user.avatar,
+        };
+        const map = new Map(useChatroomStore.getState().chatroomsMap);
+        map.set(newChatroom._id, newChatroom);
+        const newOrder = {
+          ...useChatroomStore.getState().chatroomsOrder,
+          private: [
+            ...useChatroomStore.getState().chatroomsOrder.private,
+            newChatroom._id,
+          ],
+        };
+        useChatroomStore.setState({ chatroomsMap: map, chatroomsOrder: newOrder });
       }
-    };
-    const onUpdateOwnUnread = (chatroom_id: string, user_id: string) => {
-      console.log("update own unread: ", chatroom_id, user_id);
-      if (chatroom_id === currentChat._id) {
-        updateUnreadCount(user_id, chatroom_id); //已讀
-      }
-    };*/
+    });
     socket.on("update unread", onUpdateUnread);
     return () => {
       socket.off("update unread");
     };
-  }, [socket]);
+  }, [socket, user._id]);
 
   return (
     <TooltipProvider>

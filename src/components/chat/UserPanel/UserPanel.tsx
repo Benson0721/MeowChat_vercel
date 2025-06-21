@@ -1,4 +1,4 @@
-import { AllUsersList } from "./OnlineUsersList";
+import { AllUsersList } from "./AllUsersList";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export function UserPanel({

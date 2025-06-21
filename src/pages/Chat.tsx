@@ -1,60 +1,73 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { ChatSidebar } from "@/components/chat/ChatSidebar/ChatSidebar";
-import { ChatArea } from "@/components/chat/ChatArea";
-import { UserPanel } from "@/components/chat/UserPanel";
-import { CreateGroupModal } from "@/components/chat/CreateGroupModal";
+import { ChatArea } from "@/components/chat/ChatArea/ChatArea";
+import { UserPanel } from "@/components/chat/UserPanel/UserPanel";
+import { CreateGroupModal } from "@/components/chat/CreateGroup/CreateGroupModal";
 import useChatroomStore from "@/stores/chatroom-store";
 import useUserStore from "@/stores/user-store";
 import SocketContext from "@/hooks/socketManager";
 import { toast } from "@/components/ui/sonner";
 import { User, Chatroom } from "@/types/apiType";
 import useChatroomMemberStore from "@/stores/chatroom-member-store";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Check, X } from "lucide-react";
+import { InviteToast } from "@/components/utils/InviteToast";
+
+const TOAST_DURATION = Infinity;
 
 const Chat = () => {
   const { socket, connectSocket, disconnectSocket } = useContext(SocketContext);
-  const [showUserPanel, setShowUserPanel] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
+  const [uiState, setUiState] = useState({
+    showUserPanel: false,
+    sidebarCollapsed: false,
+    showCreateGroupModal: false,
+  });
   const [isGroupChat, setIsGroupChat] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  const navigate = useNavigate();
-
+  // Store selectors - 使用淺比較避免不必要的重渲染
   const user = useUserStore((state) => state.user);
-  const getOtherUsers = useUserStore((state) => state.getOtherUsers);
-  const getChatrooms = useChatroomStore((state) => state.getChatrooms);
-  const setOtherUsers = useUserStore((state) => state.setOtherUsers);
-  const setCurrentChat = useChatroomStore((state) => state.setCurrentChat);
+  const currentChat = useChatroomStore((state) => state.currentChat);
   const chatroomsMap = useChatroomStore((state) => state.chatroomsMap);
   const chatroomsOrder = useChatroomStore((state) => state.chatroomsOrder);
-  const currentChat = useChatroomStore((state) => state.currentChat);
-  const inviteUser = useChatroomStore((state) => state.inviteUser);
-  const getOneChatroom = useChatroomStore((state) => state.getOneChatroom);
-  const addChatroomMember = useChatroomMemberStore(
-    (state) => state.addChatroomMember
-  );
-  const getChatroomMember = useChatroomMemberStore(
-    (state) => state.getChatroomMember
-  );
 
-  const fetchAllList = async () => {
-    await getChatrooms(user._id);
-    await getOtherUsers(user._id);
+  // Store actions
+  const { getChatrooms, setCurrentChat, inviteUser, getOneChatroom } =
+    useChatroomStore();
+
+  const { getOtherUsers, setOtherUsers } = useUserStore();
+
+  const { addChatroomMember, getChatroomMember } = useChatroomMemberStore();
+
+  const fetchInitialData = async () => {
+    if (!user?._id) return;
+
+    try {
+      await Promise.all([getChatrooms(user._id), getOtherUsers(user._id)]);
+    } catch (error) {
+      console.error("Failed to fetch initial data:", error);
+      toast.error("載入數據失敗，請重試");
+    }
   };
 
-  const sendInviteHandler = async (
+  const updateUiState = useCallback((updates: Partial<typeof uiState>) => {
+    setUiState((prev) => ({ ...prev, ...updates }));
+  }, []);
+
+  const receiveInviteHandler = async (
     chatroom_id: string,
     targetUser_id: string
   ) => {
     if (!socket) return;
-    await inviteUser(targetUser_id, chatroom_id);
-    await addChatroomMember(targetUser_id, chatroom_id);
-    socket.emit("invite accepted", chatroom_id, targetUser_id);
-    toast.success("已加入群組 🎉");
+    try {
+      await inviteUser(targetUser_id, chatroom_id);
+      await addChatroomMember(targetUser_id, chatroom_id);
+      socket.emit("invite accepted", chatroom_id, targetUser_id);
+      toast.success("已加入群組 🎉");
+    } catch (error) {
+      console.error("Failed to send invite:", error);
+      toast.error("邀請失敗，請重試");
+    }
   };
 
   const acceptInviteHandler = async (
@@ -62,8 +75,15 @@ const Chat = () => {
     targetUser_id: string
   ) => {
     if (!user || targetUser_id === user?._id) return;
-    await getOneChatroom(chatroom_id);
-    await getChatroomMember(user?._id);
+    try {
+      await Promise.all([
+        getOneChatroom(chatroom_id),
+        getChatroomMember(user._id),
+      ]);
+    } catch (error) {
+      console.error("Failed to accept invite:", error);
+      toast.error("加入群組失敗");
+    }
   };
 
   const statusHandler = (userId: string, status: string) => {
@@ -71,7 +91,7 @@ const Chat = () => {
     if (otherUser.has(userId)) {
       const newOtherUsers = new Map(otherUser);
       const user = newOtherUsers.get(userId);
-      user.status = status;
+      user.status = status as "online" | "away" | "offline";
       newOtherUsers.set(userId, user);
       setOtherUsers(newOtherUsers);
     }
@@ -82,114 +102,136 @@ const Chat = () => {
     setIsGroupChat(currentChat.type === "group");
   }, [currentChat]);
 
-  useEffect(() => {
-    if (!user) return navigate("/login");
-    const startChat = () => {
-      setCurrentChat(chatroomsMap.get(chatroomsOrder.global[0]));
-      connectSocket(user._id);
-      if (!socket) return;
-      socket.on("connect", () => {});
-      socket.on("user-status-online", (userId: string) => {
-        statusHandler(userId, "online");
-      });
-      socket.on("user-status-away", (userId: string) => {
-        statusHandler(userId, "away");
-      });
-      socket.on("user-status-offline", (userId: string) => {
-        statusHandler(userId, "offline");
-      });
-      socket.on(
-        "send group invite",
-        (chatroom: Chatroom, sender: User, targetUser_id: string) => {
-          if (targetUser_id !== user._id) return;
-          toast.custom(
-            (t) => (
-              <div className="p-4 bg-white rounded shadow flex flex-col gap-2 w-[300px]">
-                <div className="flex items-center gap-2">
-                  <Avatar className="w-6 h-6">
-                    <AvatarImage src={sender.avatar} />
-                    <AvatarFallback className="bg-meow-purple text-purple-800">
-                      {sender.username}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-xs text-gray-500">
-                    invite you to join
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {chatroom.avatar}
-                    <strong>{chatroom.name}</strong>
-                  </span>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    className="text-xs px-2 bg-blue-500 text-white rounded"
-                    onClick={() => {
-                      sendInviteHandler(chatroom._id, targetUser_id);
-                      toast.dismiss(t);
-                    }}
-                  >
-                    <Check />
-                  </Button>
-                  <Button
-                    className="text-xs px-2 bg-gray-200 rounded"
-                    onClick={() => toast.dismiss(t)}
-                  >
-                    <X />
-                  </Button>
-                </div>
-              </div>
-            ),
-            { duration: Infinity }
-          );
-        }
-      );
-      socket.on(
-        "invite accepted",
-        (chatroom_id: string, targetUser_id: string) => {
-          acceptInviteHandler(chatroom_id, targetUser_id);
-        }
+  const initializeChat = () => {
+    console.log("Initializing chat");
+    const firstChatroom = chatroomsMap?.get(chatroomsOrder?.global[0]);
+    if (firstChatroom) {
+      setCurrentChat(firstChatroom);
+    }
+
+    connectSocket(user._id);
+  };
+
+  const setupSocketListeners = () => {
+    if (!socket || !user) return;
+
+    const handleUserOnline = (userId: string) =>
+      statusHandler(userId, "online");
+    const handleUserAway = (userId: string) => statusHandler(userId, "away");
+    const handleUserOffline = (userId: string) =>
+      statusHandler(userId, "offline");
+
+    const handleGroupInvite = (
+      chatroom: Chatroom,
+      sender: User,
+      targetUser_id: string
+    ) => {
+      if (targetUser_id !== user._id) return;
+
+      toast.custom(
+        (t) => (
+          <InviteToast
+            chatroom={chatroom}
+            sender={sender}
+            onAccept={() => {
+              receiveInviteHandler(chatroom._id, targetUser_id);
+              toast.dismiss(t);
+            }}
+            onReject={() => toast.dismiss(t)}
+          />
+        ),
+        { duration: TOAST_DURATION }
       );
     };
-    fetchAllList().then(() => {
-      startChat();
-    });
 
+    const handleInviteAccepted = (
+      chatroom_id: string,
+      targetUser_id: string
+    ) => {
+      acceptInviteHandler(chatroom_id, targetUser_id);
+    };
+
+    // 註冊事件監聽器
+    socket.on("user-status-online", handleUserOnline);
+    socket.on("user-status-away", handleUserAway);
+    socket.on("user-status-offline", handleUserOffline);
+    socket.on("send group invite", handleGroupInvite);
+    socket.on("invite accepted", handleInviteAccepted);
+
+    // 返回清理函數
     return () => {
-      if (!socket) return;
-      socket.off("user-status-online");
-      socket.off("user-status-away");
-      socket.off("user-status-offline");
-      socket.off("send group invite");
-      socket.off("invite accepted");
+      socket.off("user-status-online", handleUserOnline);
+      socket.off("user-status-away", handleUserAway);
+      socket.off("user-status-offline", handleUserOffline);
+      socket.off("send group invite", handleGroupInvite);
+      socket.off("invite accepted", handleInviteAccepted);
+    };
+  };
+
+  useEffect(() => {
+    if (!user) return;
+
+    const initialize = async () => {
+      try {
+        await fetchInitialData();
+        initializeChat();
+      } catch (error) {
+        console.error("Initialization failed:", error);
+      }
+    };
+
+    initialize();
+  }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+    console.log("Setting up socket listeners");
+    const cleanup = setupSocketListeners();
+    return () => {
+      cleanup?.();
       disconnectSocket();
     };
-  }, [socket]);
+  }, []);
 
   return (
     <SidebarProvider>
       <div className={`min-h-screen flex w-full bg-meow-cream`}>
         <ChatSidebar
-          collapsed={sidebarCollapsed}
-          onToggleCollapsed={() => setSidebarCollapsed(!sidebarCollapsed)}
-          onCreateGroup={() => setShowCreateGroupModal(true)}
-          setSidebarCollapsed={setSidebarCollapsed}
+          collapsed={uiState.sidebarCollapsed}
+          onToggleCollapsed={() =>
+            updateUiState({ sidebarCollapsed: !uiState.sidebarCollapsed })
+          }
+          onCreateGroup={() => updateUiState({ showCreateGroupModal: true })}
+          setSidebarCollapsed={() =>
+            updateUiState({ sidebarCollapsed: !uiState.sidebarCollapsed })
+          }
         />
         <ChatArea
-          collapsed={sidebarCollapsed}
-          onToggleCollapsed={() => setSidebarCollapsed(!sidebarCollapsed)}
-          onToggleUserPanel={() => setShowUserPanel(!showUserPanel)}
-          showUserPanel={showUserPanel}
-          sidebarCollapsed={sidebarCollapsed}
+          collapsed={uiState.sidebarCollapsed}
+          onToggleCollapsed={() =>
+            updateUiState({ sidebarCollapsed: !uiState.sidebarCollapsed })
+          }
+          onToggleUserPanel={() =>
+            updateUiState({ showUserPanel: !uiState.showUserPanel })
+          }
+          showUserPanel={uiState.showUserPanel}
+          sidebarCollapsed={uiState.sidebarCollapsed}
         />
-        {showUserPanel && (
+        {uiState.showUserPanel && (
           <UserPanel
             isGroupChat={isGroupChat}
-            setShowUserPanel={setShowUserPanel}
+            setShowUserPanel={() =>
+              updateUiState({ showUserPanel: !uiState.showUserPanel })
+            }
           />
         )}
         <CreateGroupModal
-          open={showCreateGroupModal}
-          onOpenChange={setShowCreateGroupModal}
+          open={uiState.showCreateGroupModal}
+          onOpenChange={() =>
+            updateUiState({
+              showCreateGroupModal: !uiState.showCreateGroupModal,
+            })
+          }
         />
       </div>
     </SidebarProvider>
@@ -197,3 +239,39 @@ const Chat = () => {
 };
 
 export default Chat;
+{
+  /*<div className="p-4 bg-white rounded shadow flex flex-col gap-2 w-[300px]">
+  <div className="flex items-center gap-2">
+    <Avatar className="w-6 h-6">
+      <AvatarImage src={sender.avatar} />
+      <AvatarFallback className="bg-meow-purple text-purple-800">
+        {sender.username}
+      </AvatarFallback>
+    </Avatar>
+    <span className="text-xs text-gray-500">
+      invite you to join
+    </span>
+    <span className="text-xs text-gray-500">
+      {chatroom.avatar}
+      <strong>{chatroom.name}</strong>
+    </span>
+  </div>
+  <div className="flex justify-end gap-2">
+    <Button
+      className="text-xs px-2 bg-blue-500 text-white rounded"
+      onClick={() => {
+        receiveInviteHandler(chatroom._id, targetUser_id);
+        toast.dismiss(t);
+      }}
+    >
+      <Check />
+    </Button>
+    <Button
+      className="text-xs px-2 bg-gray-200 rounded"
+      onClick={() => toast.dismiss(t)}
+    >
+      <X />
+    </Button>
+  </div>
+</div>*/
+}

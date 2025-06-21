@@ -9,8 +9,8 @@ import Register from "./pages/Register";
 import ProfileEdit from "./pages/ProfileEdit";
 import NotFound from "./pages/NotFound";
 import { SocketProvider } from "./hooks/socketManager";
-import ProtectedRoute from "./components/ProtectedRoute";
-import DirectedRoutes from "./components/DirectedRoutes";
+import ProtectedRoute from "./components/utils/ProtectedRoute";
+import DirectedRoutes from "./components/utils/DirectedRoutes";
 
 const queryClient = new QueryClient();
 

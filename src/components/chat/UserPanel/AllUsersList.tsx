@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useState, useCallback, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,18 @@ import SocketContext from "@/hooks/socketManager";
 import { toast } from "@/components/ui/sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+const USER_STATUS_STYLES = {
+  online: { bg: "bg-green-300", text: "text-green-300" },
+  away: { bg: "bg-yellow-300", text: "text-yellow-300" },
+  offline: { bg: "bg-gray-300", text: "text-gray-300" },
+} as const;
+
+const TOAST_MESSAGES = {
+  INVITE_SUCCESS: "Send invite complete 😍",
+  INVITE_ERROR: "Send invite failed, please try again later",
+  CREATE_CHAT_ERROR: "Create chat failed, please try again later",
+} as const;
+
 export function AllUsersList({
   isGroupChat,
   setShowUserPanel,
@@ -16,56 +28,85 @@ export function AllUsersList({
   isGroupChat: boolean;
   setShowUserPanel: (show: boolean) => void;
 }) {
+  interface OtherUser {
+    _id: string;
+    username: string;
+    avatar: string;
+    status: "online" | "away" | "offline";
+  }
+
   const [isCreating, setIsCreating] = useState(false);
   const user = useUserStore((state) => state.user);
   const otherUsersMap = useUserStore((state) => state.otherUsersMap);
   const otherUsersOrder = useUserStore((state) => state.otherUsersOrder);
-  const onlineCount = otherUsersOrder.filter(
-    (user) => otherUsersMap.get(user)?.status === "online"
-  ).length;
   const currentChat = useChatroomStore((state) => state.currentChat);
-  const createPrivateChat = useChatroomStore((state) => state.createChatroom);
+  const privateChatrooms = useChatroomStore((state) => state.privateChatrooms);
+  const createChatroom = useChatroomStore((state) => state.createChatroom);
 
   const { socket } = useContext(SocketContext);
   const isMobile = useIsMobile();
 
-  const inviteUserHandler = async (targetUser_id: string) => {
-    if (!socket) return;
-    toast("Send invite complete😍😍");
-    socket.emit("send group invite", currentChat, user, targetUser_id);
+  const otherUsers = () => {
+    return otherUsersOrder
+      .map((userId) => otherUsersMap.get(userId))
+      .filter((user): user is OtherUser => user !== undefined);
   };
 
-  const createPrivateChatHandler = async (
-    type: string,
-    member: string[],
-    inspactMember: string
-  ) => {
-    if (isCreating) return;
-    const privateChatrooms = useChatroomStore.getState().privateChatrooms;
-    let ignoreCreatePrivateChat = privateChatrooms.find((chatroom) =>
-      chatroom.members.includes(inspactMember)
-    ); //避免重複創建
-    if (ignoreCreatePrivateChat) {
-      return;
-    }
-    setIsCreating(true);
-    await createPrivateChat(type, member, "", "");
-    setIsCreating(false);
+  const onlineCount = () => {
+    return otherUsers().filter((user) => user.status === "online").length;
   };
 
-  const userStateStyle = (type: string, status: string) => {
-    switch (status) {
-      case "online":
-        return `${type}-green-300`;
-      case "away":
-        return `${type}-yellow-300`;
-      case "offline":
-        return `${type}-gray-300`;
-      default:
-        return `${type}-gray-300`;
-    }
-  };
+  const inviteUserHandler = useCallback(
+    async (targetUser_id: string) => {
+      if (!socket) return;
+      toast("Send invite complete😍😍");
+      socket.emit("send group invite", currentChat, user, targetUser_id);
+    },
+    [socket, currentChat, user]
+  );
 
+  const existingPrivateChat = useCallback(
+    (targetUserId: string) => {
+      return privateChatrooms.find((chatroom) =>
+        chatroom.members.includes(targetUserId)
+      );
+    },
+    [privateChatrooms]
+  );
+
+  const handleCreatePrivateChat = useCallback(
+    async (targetUserId: string) => {
+      if (isCreating || !user) return;
+
+      // 檢查是否已存在私聊
+      const existingChat = existingPrivateChat(targetUserId);
+      if (existingChat) {
+        toast.info("This user already exists in private chat");
+        return;
+      }
+
+      setIsCreating(true);
+      try {
+        await createChatroom("private", [user._id, targetUserId], "", "");
+        toast.success("Private chat created successfully");
+      } catch (error) {
+        console.error("Create private chat failed:", error);
+        toast.error(TOAST_MESSAGES.CREATE_CHAT_ERROR);
+      } finally {
+        setIsCreating(false);
+      }
+    },
+    [isCreating, user, existingPrivateChat, createChatroom]
+  );
+
+  const getUserStatusStyle = useCallback(
+    (status: OtherUser["status"], type: "bg" | "text") => {
+      return (
+        USER_STATUS_STYLES[status]?.[type] || USER_STATUS_STYLES.offline[type]
+      );
+    },
+    []
+  );
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -85,7 +126,7 @@ export function AllUsersList({
           variant="secondary"
           className="bg-green-100 text-green-800 border-green-200"
         >
-          {onlineCount} online
+          {onlineCount()} online
         </Badge>
       </div>
 
@@ -109,9 +150,9 @@ export function AllUsersList({
                   </AvatarFallback>
                 </Avatar>
                 <div
-                  className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${userStateStyle(
-                    "bg",
-                    otherUserMap.status
+                  className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${getUserStatusStyle(
+                    otherUserMap.status,
+                    "bg"
                   )}`}
                 />
               </div>
@@ -125,9 +166,9 @@ export function AllUsersList({
                   ) : null}
                 </p>
                 <p
-                  className={`text-xs ${userStateStyle(
-                    "text",
-                    otherUserMap.status
+                  className={`text-xs ${getUserStatusStyle(
+                    otherUserMap.status,
+                    "text"
                   )}`}
                 >
                   {otherUserMap.status}
@@ -149,13 +190,7 @@ export function AllUsersList({
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-meow-purple/50 rounded-lg"
-                  onClick={() =>
-                    createPrivateChatHandler(
-                      "private",
-                      [user._id, otherUserMap._id],
-                      otherUserMap._id
-                    )
-                  }
+                  onClick={() => handleCreatePrivateChat(otherUserMap._id)}
                 >
                   <MessageSquare className="w-4 h-4" />
                 </Button>

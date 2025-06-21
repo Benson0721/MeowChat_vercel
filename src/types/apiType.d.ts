@@ -2,7 +2,7 @@ export interface User {
   _id: string;
   username: string;
   avatar: string;
-  status: string;
+  status: "online" | "away" | "offline";
 }
 
 export interface Chatroom {

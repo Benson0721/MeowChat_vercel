@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState,useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -128,7 +128,9 @@ export function ChatMessage({
                   )}
                 >
                   {message?.isRecalled ? (
-                    <p className="italic text-gray-500">Recalled🤫</p>
+                    <p className="italic text-gray-500 border border-meow-purple/40 p-2 rounded">
+                      Recalled🤫
+                    </p>
                   ) : message?.type === "sticker" ? (
                     <img
                       src={message.content}

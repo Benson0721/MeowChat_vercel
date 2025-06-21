@@ -155,6 +155,7 @@ export function ChatArea({
 
   useEffect(() => {
     if (!currentChat) return;
+    console.log("currentChat變了!", currentChat);
     setIsFetching(true);
     getChatroomInfo().then(() => {
       setIsReply(null);
@@ -174,11 +175,13 @@ export function ChatArea({
 
     handleUpdateReadCount();
 
-    const onMessage = (msg: Message) => {
-      if (msg.chatroom_id === currentChat._id && msg.user._id !== user._id) {
+    const onMessage = (msg: Message, room_id: string) => {
+      console.log("我有收到訊息: ", user.username, msg, room_id);
+      if (room_id === currentChat._id && msg.user._id !== user._id) {
+        console.log("我有收到訊息: ", user.username, msg, room_id);
         handleReceiveMessage(msg);
         socket.emit("update unread", currentChat._id);
-        if (msg.chatroom_id === currentChat._id) {
+        if (room_id === currentChat._id) {
           if (messageMap) {
             updateReadCount(messages, currentChat);
           }
@@ -209,7 +212,7 @@ export function ChatArea({
       socket.off("update message", onUpdateMessage);
       socket.off("update last_read_time", onUpdateLastReadTime);
     };
-  }, [currentChat?._id, messageMap.size, isFetching]);
+  }, [currentChat, messageMap.size, isFetching]);
 
   useEffect(() => {
     const observerfunc = () => {

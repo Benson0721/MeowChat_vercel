@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import {
 import { EmojiGroupPicker } from "./EmojiGroupPicker";
 import useChatroomStore from "@/stores/chatroom-store";
 import useUserStore from "@/stores/user-store";
+import SocketContext from "@/hooks/socketManager";
 
 interface CreateGroupModalProps {
   open: boolean;
@@ -28,6 +29,7 @@ export function CreateGroupModal({
   const [isLoading, setIsLoading] = useState(false);
   const createGroup = useChatroomStore((state) => state.createChatroom);
   const user = useUserStore((state) => state.user);
+  const { socket } = useContext(SocketContext);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -43,9 +45,6 @@ export function CreateGroupModal({
     }
     setIsLoading(true);
     await createGroup("group", [user._id], selectedEmoji, groupName.trim());
-    setGroupName("");
-    setSelectedEmoji("🐱");
-    setError("");
     setIsLoading(false);
     handleClose();
   };

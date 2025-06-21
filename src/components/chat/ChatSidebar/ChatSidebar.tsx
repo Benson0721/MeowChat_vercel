@@ -62,7 +62,6 @@ export function ChatSidebar({
 }: ChatSidebarProps) {
   const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
-  const getChatrooms = useChatroomStore((state) => state.getChatrooms);
   const chatroomsMap = useChatroomStore((state) => state.chatroomsMap);
   const chatroomsOrder = useChatroomStore((state) => state.chatroomsOrder);
   const setCurrentChat = useChatroomStore((state) => state.setCurrentChat);
@@ -83,6 +82,19 @@ export function ChatSidebar({
     : collapsed
     ? "w-20" // 桌機且折疊
     : "w-80"; // 桌機且展開
+
+  const userStateStyle = (type: string, status: string) => {
+    switch (status) {
+      case "online":
+        return `${type}-green-300`;
+      case "away":
+        return `${type}-yellow-300`;
+      case "offline":
+        return `${type}-gray-300`;
+      default:
+        return `${type}-gray-300`;
+    }
+  };
 
   useEffect(() => {
     if (isMobile) {
@@ -149,7 +161,10 @@ export function ChatSidebar({
             newChatroom._id,
           ],
         };
-        useChatroomStore.setState({ chatroomsMap: map, chatroomsOrder: newOrder });
+        useChatroomStore.setState({
+          chatroomsMap: map,
+          chatroomsOrder: newOrder,
+        });
       }
     });
     socket.on("update unread", onUpdateUnread);
@@ -268,16 +283,16 @@ export function ChatSidebar({
                     </AvatarFallback>
                   </Avatar>
                   <div
-                    className={`absolute -bottom-0.5 -right-1 w-3 h-3 rounded-full border border-white ${
-                      user?.status === "online" ? "bg-green-500" : "bg-gray-300"
-                    }`}
+                    className={`absolute -bottom-0.5 -right-1 w-3 h-3 rounded-full border border-white ${userStateStyle(
+                      "bg",
+                      user?.status
+                    )}`}
                   />
                 </button>
                 <div className="flex-1">
                   <p className="font-medium text-purple-900 text-sm">
                     {user?.username}
                   </p>
-                  <p className="text-xs text-purple-600">Online</p>
                 </div>
                 <Button
                   size="sm"

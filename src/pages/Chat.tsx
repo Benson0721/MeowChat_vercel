@@ -155,6 +155,12 @@ const Chat = () => {
     });
 
     return () => {
+      if (!socket) return;
+      socket.off("user-status-online");
+      socket.off("user-status-away");
+      socket.off("user-status-offline");
+      socket.off("send group invite");
+      socket.off("invite accepted");
       disconnectSocket();
     };
   }, [socket]);

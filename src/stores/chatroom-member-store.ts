@@ -98,6 +98,44 @@ const useChatroomMemberStore = create<Store & Action>()((set, get) => ({
   updateUnreadCount: async (user_id: string, chatroom_id: string) => {
     try {
       const chatroomMember = await updateUnreadCount(user_id, chatroom_id);
+      const oldMap = get().memberMap;
+      const oldArray = oldMap.get(chatroom_id) as ChatroomMember[];
+
+      if (!oldArray) return;
+
+      const newArray = oldArray.map((member) => {
+        if (member.user_id === user_id) {
+          // 如果 unread_count 沒變，就保留原物件（避免不必要 render）
+          if (member.unread_count === chatroomMember.unread_count) {
+            return member;
+          } else {
+            // 回傳新的物件（React 檢測到才會 re-render）
+            return {
+              ...member,
+              unread_count: chatroomMember.unread_count,
+            };
+          }
+        }
+        return member;
+      });
+
+      // 只有當資料真的有變才更新
+      const isSame = newArray.every((m, i) => m === oldArray[i]);
+      if (isSame) return;
+
+      const newMap = new Map(oldMap);
+      newMap.set(chatroom_id, newArray);
+
+      const { userMemberMap, otherMemberMap } = get().refreshMaps(
+        newMap,
+        user_id
+      );
+      set({
+        memberMap: newMap,
+        userMemberMap,
+        otherMemberMap,
+      });
+      /*const chatroomMember = await updateUnreadCount(user_id, chatroom_id);
       const memberMapArray = get().memberMap.get(chatroom_id);
 
       memberMapArray?.forEach((member) => {
@@ -115,7 +153,7 @@ const useChatroomMemberStore = create<Store & Action>()((set, get) => ({
         memberMap: newMap,
         userMemberMap: userMemberMap,
         otherMemberMap: otherMemberMap,
-      });
+      });*/
     } catch (error) {
       console.error("更新聊天室失敗:", error);
     }
@@ -128,7 +166,6 @@ const useChatroomMemberStore = create<Store & Action>()((set, get) => ({
       messages.forEach((message) => {
         if (!Array.isArray(memberMapArray)) return;
         const readMember = memberMapArray.filter((member) => {
-    
           return (
             member.user_id !== message.user._id &&
             new Date(member.last_read_at).getTime() >

@@ -4,7 +4,7 @@ MeowChat 是一個線上多人聊天室，支援群組聊天、私聊、即時�
 
 ---
 
-## 📚 目錄
+## 目錄
 
 - [技術](#技術)
 - [功能特色](#功能特色)
@@ -15,7 +15,7 @@ MeowChat 是一個線上多人聊天室，支援群組聊天、私聊、即時�
 
 ---
 
-## ⚙️ 技術
+## 技術
 
 **Frontend**  
 - React + Vite  
@@ -31,7 +31,7 @@ MeowChat 是一個線上多人聊天室，支援群組聊天、私聊、即時�
 
 ---
 
-## ✨ 功能特色
+## 功能特色
 
 ### 使用者功能
 - 使用者登入與即時身份辨識
@@ -51,7 +51,7 @@ MeowChat 是一個線上多人聊天室，支援群組聊天、私聊、即時�
 
 ---
 
-## 🗂️ 專案結構
+## 專案結構
 
 ```
 MeowChat/
@@ -81,7 +81,7 @@ MeowChat/
 ```
 ---
 
-## 🖼️ 專案畫面截圖
+## 專案畫面截圖
 
 - 首頁
 ![首頁展示](./screenshots/index.jpeg)
@@ -100,14 +100,14 @@ MeowChat/
 
 ---
 
-## 🌐 LiveSite
+## LiveSite
 
 - GitHub Repo: [MeowChat](https://github.com/Benson0721/MeowChat_vercel)
 - Live Demo: [MeowChat on Vercel](https://meow-chat-vercel.vercel.app)
 
 ---
 
-## 🙋 作者資訊
+## 作者資訊
 
 - 作者：Benson
 - 前端學習者-以成為一名前端工程師為目標!

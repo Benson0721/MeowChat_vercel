@@ -10,7 +10,7 @@ const SocketContext = createContext({
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState<Socket | null>(null);
 
-  function connectSocket(userId: string): void {
+  function connectSocket(userId: string): Socket {
     if (!socket) {
       setSocket(() =>
         io(import.meta.env.VITE_SOCKET_URL || "http://localhost:5000", {
@@ -18,6 +18,7 @@ export const SocketProvider = ({ children }) => {
         })
       );
     }
+    return socket;
   }
 
   function disconnectSocket() {

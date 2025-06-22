@@ -135,35 +135,16 @@ const useChatroomMemberStore = create<Store & Action>()((set, get) => ({
         userMemberMap,
         otherMemberMap,
       });
-      /*const chatroomMember = await updateUnreadCount(user_id, chatroom_id);
-      const memberMapArray = get().memberMap.get(chatroom_id);
-
-      memberMapArray?.forEach((member) => {
-        if (member.user_id === user_id) {
-          member.unread_count = chatroomMember.unread_count;
-        }
-      });
-      const newMap = new Map(get().memberMap);
-      newMap.set(chatroom_id, memberMapArray);
-      const { userMemberMap, otherMemberMap } = get().refreshMaps(
-        newMap,
-        user_id
-      );
-      set({
-        memberMap: newMap,
-        userMemberMap: userMemberMap,
-        otherMemberMap: otherMemberMap,
-      });*/
     } catch (error) {
       console.error("更新聊天室失敗:", error);
     }
   },
   updateReadCount: async (messages: Message[], chatroom: Chatroom) => {
     try {
-      const memberMapArray = get().memberMap.get(chatroom._id);
+      const memberMapArray = get().memberMap.get(chatroom?._id);
 
       const newMap = new Map<string, number>();
-      messages.forEach((message) => {
+      messages?.forEach((message) => {
         if (!Array.isArray(memberMapArray)) return;
         const readMember = memberMapArray.filter((member) => {
           return (
@@ -175,6 +156,7 @@ const useChatroomMemberStore = create<Store & Action>()((set, get) => ({
         newMap.set(message._id, readMember.length);
       });
       const readCount = Object.fromEntries(newMap);
+
       set({
         readCount: readCount,
       });

@@ -109,7 +109,7 @@ export function AllUsersList({
   );
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between overflow-y-auto hide-scrollbar">
         {isMobile ? (
           <Button
             variant="ghost"

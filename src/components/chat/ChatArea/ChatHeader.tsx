@@ -31,8 +31,6 @@ export const ChatHeader = ({
     return `${chat?.members?.length || 0} members online`;
   };
 
-  console.log(displayInfo);
-
   return (
     <div className="flex items-center justify-between p-4 bg-white border-b border-meow-purple/20 shadow-sm">
       <div className="flex items-center gap-4">
@@ -56,7 +54,9 @@ export const ChatHeader = ({
             <Avatar className="w-6 h-6">
               <AvatarImage src={displayInfo?.avatar} alt={displayInfo?.name} />
               <AvatarFallback className="bg-meow-pink text-purple-800 text-xs">
-                {displayInfo?.name?.charAt(0)?.toUpperCase() || "?"}
+                {displayInfo?.avatar ||
+                  displayInfo?.name?.charAt(0)?.toUpperCase() ||
+                  "?"}
               </AvatarFallback>
             </Avatar>
           </div>

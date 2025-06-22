@@ -28,7 +28,7 @@ export const InviteToast = ({
         <div className="flex-1">
           <p className="text-sm text-gray-700">
             <span className="font-medium">{sender.username}</span>
-            <span className="text-gray-500"> 邀請你加入群組</span>
+            <span className="text-gray-500"> invite you to join</span>
           </p>
           <p className="text-sm font-medium text-gray-900">{chatroom.name}</p>
         </div>
@@ -41,7 +41,7 @@ export const InviteToast = ({
           className="bg-green-500 hover:bg-green-600 text-white"
         >
           <Check className="w-4 h-4 mr-1" />
-          接受
+          Accept
         </Button>
         <Button
           size="sm"
@@ -50,7 +50,7 @@ export const InviteToast = ({
           className="border-gray-300 hover:bg-gray-50"
         >
           <X className="w-4 h-4 mr-1" />
-          拒絕
+          Reject
         </Button>
       </div>
     </div>

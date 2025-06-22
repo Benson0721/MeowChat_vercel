@@ -1,5 +1,4 @@
-import { useState, useEffect, useContext, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useContext, useCallback, useMemo } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { ChatSidebar } from "@/components/chat/ChatSidebar/ChatSidebar";
 import { ChatArea } from "@/components/chat/ChatArea/ChatArea";
@@ -9,10 +8,10 @@ import useChatroomStore from "@/stores/chatroom-store";
 import useUserStore from "@/stores/user-store";
 import SocketContext from "@/hooks/socketManager";
 import { toast } from "@/components/ui/sonner";
-import { User, Chatroom } from "@/types/apiType";
+import { User, Chatroom, Message } from "@/types/apiType";
 import useChatroomMemberStore from "@/stores/chatroom-member-store";
 import { InviteToast } from "@/components/utils/InviteToast";
-
+import useMessageStore from "@/stores/message-store";
 const TOAST_DURATION = Infinity;
 
 const Chat = () => {
@@ -23,13 +22,14 @@ const Chat = () => {
     showCreateGroupModal: false,
   });
   const [isGroupChat, setIsGroupChat] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
 
   // Store selectors - 使用淺比較避免不必要的重渲染
   const user = useUserStore((state) => state.user);
   const currentChat = useChatroomStore((state) => state.currentChat);
   const chatroomsMap = useChatroomStore((state) => state.chatroomsMap);
   const chatroomsOrder = useChatroomStore((state) => state.chatroomsOrder);
+  const messageMap = useMessageStore((state) => state.messageMap);
+  const memberMap = useChatroomMemberStore((state) => state.memberMap);
 
   // Store actions
   const { getChatrooms, setCurrentChat, inviteUser, getOneChatroom } =
@@ -37,7 +37,19 @@ const Chat = () => {
 
   const { getOtherUsers, setOtherUsers } = useUserStore();
 
-  const { addChatroomMember, getChatroomMember } = useChatroomMemberStore();
+  const {
+    addChatroomMember,
+    getChatroomMember,
+    updateLastReadAt,
+    updateReadCount,
+    updateUnreadCount,
+  } = useChatroomMemberStore();
+
+  const { handleReceiveMessage, handleUpdateMessage } = useMessageStore();
+
+  const messages = useMemo(() => {
+    return [...messageMap.values()];
+  }, [messageMap]);
 
   const fetchInitialData = async () => {
     if (!user?._id) return;
@@ -103,13 +115,10 @@ const Chat = () => {
   }, [currentChat]);
 
   const initializeChat = () => {
-    console.log("Initializing chat");
     const firstChatroom = chatroomsMap?.get(chatroomsOrder?.global[0]);
     if (firstChatroom) {
       setCurrentChat(firstChatroom);
     }
-
-    connectSocket(user._id);
   };
 
   const setupSocketListeners = () => {
@@ -151,20 +160,84 @@ const Chat = () => {
       acceptInviteHandler(chatroom_id, targetUser_id);
     };
 
+    const onReceiveMessage = (msg: Message, room_id: string) => {
+      const existing = useChatroomStore.getState().chatroomsMap.get(room_id);
+      if (
+        room_id === useChatroomStore.getState().currentChat?._id &&
+        msg.user._id !== user._id
+      ) {
+        handleReceiveMessage(msg);
+        socket.emit("update unread", currentChat._id);
+      } else if (!existing) {
+        const newChatroom = {
+          _id: room_id,
+          members: [msg.user._id, user._id],
+          name: msg.user.username,
+          type: "private",
+          avatar: msg.user.avatar,
+        };
+        const map = new Map(useChatroomStore.getState().chatroomsMap);
+        map.set(newChatroom._id, newChatroom);
+        const newOrder = {
+          ...useChatroomStore.getState().chatroomsOrder,
+          private: [
+            ...useChatroomStore.getState().chatroomsOrder.private,
+            newChatroom._id,
+          ],
+        };
+        useChatroomStore.setState({
+          chatroomsMap: map,
+          chatroomsOrder: newOrder,
+        });
+      }
+    };
+
+    const onUpdateMessage = (message_id: string, user_id: string) => {
+      if (user_id !== user._id) {
+        handleUpdateMessage(message_id);
+      }
+    };
+
+    const onUpdateLastReadTime = async (
+      chatroom_id: string,
+      user_id: string
+    ) => {
+      await updateLastReadAt(user_id, chatroom_id);
+    };
+
+    const onUpdateUnread = (chatroom_id: string) => {
+      updateUnreadCount(user._id, chatroom_id);
+    };
+
+    const onUpdateReadCount = (messages: Message[], chatroom: Chatroom) => {
+      updateReadCount(messages, chatroom);
+    };
+
     // 註冊事件監聽器
+   
+    socket.on("chat message", onReceiveMessage);
+    socket.on("update unread", onUpdateUnread);
     socket.on("user-status-online", handleUserOnline);
     socket.on("user-status-away", handleUserAway);
     socket.on("user-status-offline", handleUserOffline);
     socket.on("send group invite", handleGroupInvite);
     socket.on("invite accepted", handleInviteAccepted);
+    socket.on("update message", onUpdateMessage);
+    socket.on("update last_read_time", onUpdateLastReadTime);
+    socket.on("update read count", onUpdateReadCount);
 
     // 返回清理函數
     return () => {
+      socket.off("chat message", onReceiveMessage);
+      socket.off("update unread", onUpdateUnread);
+      socket.off("update message", onUpdateMessage);
+      socket.off("update last_read_time", onUpdateLastReadTime);
       socket.off("user-status-online", handleUserOnline);
       socket.off("user-status-away", handleUserAway);
       socket.off("user-status-offline", handleUserOffline);
       socket.off("send group invite", handleGroupInvite);
       socket.off("invite accepted", handleInviteAccepted);
+      socket.off("update read count", onUpdateReadCount);
     };
   };
 
@@ -184,14 +257,34 @@ const Chat = () => {
   }, []);
 
   useEffect(() => {
-    if (!socket) return;
-    console.log("Setting up socket listeners");
-    const cleanup = setupSocketListeners();
+    if (!user?._id) return;
+    connectSocket(user._id);
+
     return () => {
-      cleanup?.();
       disconnectSocket();
     };
-  }, []);
+  }, [user?._id]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const cleanup = setupSocketListeners();
+
+    return () => {
+      cleanup?.();
+    };
+  }, [socket]);
+
+  /*useEffect(() => {
+    if (
+      !currentChat ||
+      messageMap.size === 0 ||
+      memberMap.get(currentChat._id)?.length === 0 ||
+      !socket
+    )
+      return;
+
+    updateReadCount(messages, currentChat);
+  }, [currentChat, messageMap.size]);*/
 
   return (
     <SidebarProvider>

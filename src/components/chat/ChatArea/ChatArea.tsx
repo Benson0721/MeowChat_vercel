@@ -44,24 +44,15 @@ export function ChatArea({
   const user = useUserStore((state) => state.user);
   const messageMap = useMessageStore((state) => state.messageMap);
   const datedMessages = useMessageStore((state) => state.datedMessages);
-  const memberMap = useChatroomMemberStore((state) => state.memberMap);
   const otherUsersMap = useUserStore((state) => state.otherUsersMap);
 
-  const {
-    sendMessage,
-    getHistoryMessage,
-    recallMessage,
-    handleReceiveMessage,
-    handleUpdateMessage,
-  } = useMessageStore();
+  const { sendMessage, getHistoryMessage, recallMessage } = useMessageStore();
 
-  const { getChatroomMember, updateLastReadAt, updateReadCount } =
-    useChatroomMemberStore();
+  const { getChatroomMember } = useChatroomMemberStore();
 
-  const [inputState, setInputState] = useState({
-    message: "",
-    isReply: null as Message | null,
-  });
+  const [input, setInput] = useState<string>("");
+  const [reply, setReply] = useState<Message | null>(null);
+
   const [chatInfo, setChatInfo] = useState({
     name: "",
     privateUserId: null as string | null,
@@ -72,7 +63,6 @@ export function ChatArea({
     avatar: "",
   });
   const [stickers, setStickers] = useState([]);
-  const [isFetching, setIsFetching] = useState(false);
 
   //ref
   const lastMessageRef = useRef<HTMLDivElement>(null);
@@ -128,31 +118,39 @@ export function ChatArea({
   //handler
   const handleCopy = (message: Message) => {
     navigator.clipboard.writeText(message.content);
-    setInputState((prev) => ({ ...prev, message: message.content }));
+    setInput(message.content);
   };
 
   const handleReply = (message: Message) => {
-    setInputState((prev) => ({ ...prev, isReply: message }));
+    setReply(() => message);
   };
-  const handleSendMessage = async (type: string, content: string) => {
+
+
+  const handleSendMessage = async (
+    type: string,
+    content: string,
+    reply?: Message
+  ) => {
     if (content.trim()) {
+      let room_id = useChatroomStore.getState().currentChat?._id;
       const newMessage = await sendMessage(
-        currentChat._id,
-        user._id,
+        room_id,
+        user?._id,
         content,
         type,
-        inputState.isReply?._id
+        reply?._id
       );
-      socket.emit("chat message", newMessage, currentChat._id);
-      setInputState((prev) => ({ ...prev, message: "" }));
-      setInputState((prev) => ({ ...prev, isReply: null }));
+      if (!socket) return;
+      socket.emit("chat message", newMessage, room_id);
+      setInput("");
+      setReply(null);
     }
   };
 
   const handleEmojiStickerSelect = useCallback(
     (content: string, type: "emoji" | "sticker") => {
       if (type === "emoji") {
-        setInputState((prev) => ({ ...prev, message: prev.message + content }));
+        setInput((prev) => prev + content);
       } else {
         handleSendMessage("sticker", content);
       }
@@ -161,79 +159,20 @@ export function ChatArea({
   );
 
   const handleRecallMessage = async (messageId: string) => {
+    if (!socket) return;
     socket.emit("update message", messageId, user._id);
     socket.emit("update unread", currentChat._id);
     await recallMessage(messageId);
   };
 
-  const handleUpdateReadCount = useCallback(async () => {
-    if (
-      !currentChat ||
-      !messageMap ||
-      memberMap.get(currentChat._id)?.length === 0
-    )
-      return;
-    updateReadCount(messages, currentChat);
-  }, [messages, currentChat]);
-
   //effects
   useEffect(() => {
     if (!currentChat) return;
-    setIsFetching(true);
     getChatroomInfo().then(() => {
-      setInputState((prev) => ({ ...prev, isReply: null }));
-      setIsFetching(false);
+      setInput("");
+      setReply(null);
     });
   }, [currentChat]);
-
-  useEffect(() => {
-    if (
-      !currentChat ||
-      messageMap.size === 0 ||
-      memberMap.get(currentChat._id)?.length === 0 ||
-      isFetching ||
-      !socket
-    )
-      return;
-
-    handleUpdateReadCount();
-
-    const onMessage = (msg: Message, room_id: string) => {
-      if (room_id === currentChat._id && msg.user._id !== user._id) {
-        handleReceiveMessage(msg);
-        socket.emit("update unread", currentChat._id);
-        if (room_id === currentChat._id) {
-          if (messageMap) {
-            updateReadCount(messages, currentChat);
-          }
-        }
-      }
-    };
-
-    const onUpdateMessage = (message_id: string, user_id: string) => {
-      if (user_id !== user._id) {
-        handleUpdateMessage(message_id);
-      }
-    };
-
-    const onUpdateLastReadTime = async (
-      chatroom_id: string,
-      user_id: string
-    ) => {
-      await updateLastReadAt(user_id, chatroom_id);
-      updateReadCount(messages, currentChat);
-    };
-
-    socket.on("chat message", onMessage);
-    socket.on("update message", onUpdateMessage);
-    socket.on("update last_read_time", onUpdateLastReadTime);
-
-    return () => {
-      socket.off("chat message", onMessage);
-      socket.off("update message", onUpdateMessage);
-      socket.off("update last_read_time", onUpdateLastReadTime);
-    };
-  }, [currentChat, messageMap.size, isFetching]);
 
   useEffect(() => {
     const observerfunc = () => {
@@ -243,8 +182,10 @@ export function ChatArea({
       }, 50);
       observer = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting) {
-          socket?.emit("update last_read_time", currentChat?._id, user._id);
-          socket?.emit("update unread", currentChat?._id);
+          if (!socket) return;
+          socket.emit("update last_read_time", currentChat?._id, user._id);
+          socket.emit("update unread", currentChat?._id);
+          socket.emit("update read count", messages, currentChat);
         }
       });
       observer.observe(lastMessageRef.current);
@@ -252,8 +193,10 @@ export function ChatArea({
 
     const onFocus = () => {
       if (isAtBottom() && currentChat?._id) {
-        socket?.emit("update last_read_time", currentChat._id, user._id);
-        socket?.emit("update unread", currentChat._id);
+        if (!socket) return;
+        socket.emit("update last_read_time", currentChat._id, user._id);
+        socket.emit("update unread", currentChat._id);
+        socket.emit("update read count", messages, currentChat);
       }
       window.addEventListener("focus", onFocus);
     };
@@ -266,20 +209,20 @@ export function ChatArea({
   }, [datedMessages]);
 
   useEffect(() => {
-    if (!currentChat) {
-      setDisplayInfo({ name: "", avatar: "" });
-      return;
-    }
-
+    if (!currentChat) return;
     if (currentChat.type === "private" && currentPrivateUser) {
-      setDisplayInfo({
-        name: currentPrivateUser.username,
-        avatar: currentPrivateUser.avatar,
+      setDisplayInfo(() => {
+        return {
+          name: currentPrivateUser.username,
+          avatar: currentPrivateUser.avatar,
+        };
       });
     } else {
-      setDisplayInfo({
-        name: currentChat.name,
-        avatar: currentChat.avatar,
+      setDisplayInfo(() => {
+        return {
+          name: currentChat.name,
+          avatar: currentChat.avatar,
+        };
       });
     }
   }, [
@@ -344,13 +287,8 @@ export function ChatArea({
 
       {/* Message Input */}
       <div className="relative ">
-        {inputState.isReply && (
-          <ReplyPreview
-            message={inputState.isReply}
-            onClose={() =>
-              setInputState((prev) => ({ ...prev, isReply: null }))
-            }
-          />
+        {reply && (
+          <ReplyPreview message={reply} onClose={() => setReply(null)} />
         )}
 
         <div className="p-6 bg-white border-t border-meow-purple/20">
@@ -358,13 +296,11 @@ export function ChatArea({
             <Input
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
-                  handleSendMessage("text", inputState.message);
+                  handleSendMessage("text", input, reply);
                 }
               }}
-              value={inputState.message}
-              onChange={(e) =>
-                setInputState((prev) => ({ ...prev, message: e.target.value }))
-              }
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
               placeholder={`Message ${currentChat?.name}...`}
               className="flex-1 border-0 bg-transparent placeholder:text-purple-500 focus-visible:ring-0 focus-visible:ring-offset-0"
             />
@@ -375,8 +311,8 @@ export function ChatArea({
             />
 
             <Button
-              onClick={() => handleSendMessage("text", inputState.message)}
-              disabled={!inputState.message.trim()}
+              onClick={() => handleSendMessage("text", input, reply)}
+              disabled={!input.trim()}
               size="sm"
               className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl px-4 transition-all duration-200 shadow-sm"
             >

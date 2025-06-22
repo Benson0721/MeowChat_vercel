@@ -45,11 +45,10 @@ export default function LogoutDialog() {
           </div>
         </DialogHeader>
         <DialogFooter>
-          <DialogClose>
-            <Button variant="destructive" onClick={logoutHandler}>
-              Logout
-            </Button>
-          </DialogClose>
+          <Button variant="destructive" onClick={logoutHandler}>
+            Logout
+          </Button>
+
           <DialogClose>
             <Button variant="outline">Cancel</Button>
           </DialogClose>

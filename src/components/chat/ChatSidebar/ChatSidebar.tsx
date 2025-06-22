@@ -108,18 +108,18 @@ export function ChatSidebar({
 
   useEffect(() => {
     if (!socket) return;
-    socket.emit("join room", currentChat._id);
+    socket.emit("join room", useChatroomStore.getState().currentChat?._id);
 
     if (isMobile) {
       onToggleCollapsed();
     }
 
     return () => {
-      socket.emit("leave room", currentChat._id);
+      socket.emit("leave room", useChatroomStore.getState().currentChat?._id);
     };
   }, [currentChat]);
 
-  useEffect(() => {
+  /* useEffect(() => {
     if (!socket) return;
 
     const onUpdateUnread = (chatroom_id: string) => {
@@ -157,7 +157,7 @@ export function ChatSidebar({
       socket.off("update unread");
     };
   }, [socket, user._id]);
-
+*/
   const renderUserSection = () => {
     if (collapsed) {
       return (

@@ -53,6 +53,7 @@ MeowChat 是一個線上多人聊天室，支援群組聊天、私聊、即時�
 
 ## 🗂️ 專案結構
 
+```
 MeowChat/
 ├── server/
 │ ├── controllers/
@@ -77,7 +78,7 @@ MeowChat/
 │ └── package.json
 │
 └── README.md
-
+```
 ---
 
 ## 🖼️ 專案畫面截圖

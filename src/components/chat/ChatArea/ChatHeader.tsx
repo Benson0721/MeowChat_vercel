@@ -81,13 +81,6 @@ export const ChatHeader = ({
         >
           <Users className="w-4 h-4" />
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="rounded-xl hover:bg-meow-purple/50"
-        >
-          <MoreVertical className="w-4 h-4" />
-        </Button>
       </div>
     </div>
   );

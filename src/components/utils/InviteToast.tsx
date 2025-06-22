@@ -26,11 +26,11 @@ export const InviteToast = ({
           </AvatarFallback>
         </Avatar>
         <div className="flex-1">
-          <p className="text-sm text-gray-700">
-            <span className="font-medium">{sender.username}</span>
-            <span className="text-gray-500"> invite you to join</span>
+          <p className="text-sm text-purple-600">
+            <span className="font-bold">{sender.username}</span>
+            <span className="font-medium"> invite you to join </span>
+            <span className="font-bold">{chatroom.avatar}{chatroom.name}</span>
           </p>
-          <p className="text-sm font-medium text-gray-900">{chatroom.name}</p>
         </div>
       </div>
 

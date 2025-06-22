@@ -206,14 +206,6 @@ export function ChatSidebar({
             {user?.username}
           </p>
         </div>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="text-purple-600 hover:bg-meow-purple/50 rounded-xl"
-          aria-label="設置"
-        >
-          <Settings className="w-4 h-4" />
-        </Button>
         <LogoutDialog />
       </div>
     );
@@ -245,12 +237,12 @@ export function ChatSidebar({
 
         <div className="h-full flex flex-col">
           {/* Header */}
-          <header
-            className="p-4 border-b border-meow-purple/20 hover:cursor-pointer"
-            onClick={() => navigate("/")}
-          >
+          <header className="p-4 border-b border-meow-purple/20 hover:cursor-pointer">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center flex-shrink-0">
+              <div
+                className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center flex-shrink-0"
+                onClick={() => navigate("/")}
+              >
                 <span className="text-xl" role="img" aria-label="貓咪">
                   🐱
                 </span>

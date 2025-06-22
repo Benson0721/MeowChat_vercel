@@ -1,73 +1,111 @@
-# Welcome to your Lovable project
+# MeowChat 聊天室（MERN Stack）
 
-## Project info
+MeowChat 是一個線上多人聊天室，支援群組聊天、私聊、即時邀請與訊息未讀狀態管理，並以 MERN（MongoDB、Express.js、React.js、Node.js）為技術基礎打造。
 
-**URL**: https://lovable.dev/projects/be935d62-a823-41b2-bf16-4c689abcc9e7
+---
 
-## How can I edit this code?
+## 📚 目錄
 
-There are several ways of editing your application.
+- [技術](#技術)
+- [功能特色](#功能特色)
+- [專案結構](#專案結構)
+- [專案畫面截圖](#專案畫面截圖)
+- [LiveSite](#livesite)
+- [作者資訊](#作者資訊)
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/be935d62-a823-41b2-bf16-4c689abcc9e7) and start prompting.
+## ⚙️ 技術
 
-Changes made via Lovable will be committed automatically to this repo.
+**Frontend**  
+- React + Vite  
+- Zustand 狀態管理  
+- TailwindCSS + Shadcn/ui  
+- Socket.IO Client  
 
-**Use your preferred IDE**
+**Backend**  
+- Node.js + Express.js  
+- MongoDB (Mongoose ODM)  
+- Socket.IO Server  
+- RESTful API 設計  
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+---
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## ✨ 功能特色
 
-Follow these steps:
+### 使用者功能
+- 使用者登入與即時身份辨識
+- 狀態變更（上線、離開、離線）同步顯示
+- 私聊聊天室自動建立與更新
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### 群組功能
+- 建立群組、邀請成員即時加入
+- 可自訂聊天室名稱與頭貼
+- 未讀訊息與已讀回報機制
+- 邀請通知可接受/拒絕並顯示自訂toast
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### 訊息系統
+- 支援即時聊天與訊息同步
+- 伺服器儲存與快取處理
+- 更新訊息、更新已讀、訊息接收與回覆訊息
 
-# Step 3: Install the necessary dependencies.
-npm i
+---
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+## 🗂️ 專案結構
 
-**Edit a file directly in GitHub**
+MeowChat/
+├── server/
+│ ├── controllers/
+│ ├── models/
+│ ├── routes/
+│ ├── socket/
+│ ├── server.js
+│ └── package.json
+│
+├── client/
+│ ├── src/
+│ │ ├── lib/
+│ │ ├── components/
+│ │ ├── hooks/
+│ │ ├── pages/
+│ │ ├── stores/
+│ │ ├── types/
+│ │ ├── utils/
+│ │ └── main.tsx
+│ │
+│ ├── tailwind.config.js
+│ └── package.json
+│
+└── README.md
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+---
 
-**Use GitHub Codespaces**
+## 🖼️ 專案畫面截圖
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- 首頁
 
-## What technologies are used for this project?
+- 登入頁面
 
-This project is built with:
+- 聊天室頁面
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- 即時邀請與通知 Toast
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/be935d62-a823-41b2-bf16-4c689abcc9e7) and click on Share -> Publish.
+## 🌐 LiveSite
 
-## Can I connect a custom domain to my Lovable project?
+- GitHub Repo: [MeowChat](https://github.com/Benson0721/MeowChat_vercel)
+- Live Demo: [MeowChat on Vercel](https://meow-chat-vercel.vercel.app)
 
-Yes, you can!
+---
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 🙋 作者資訊
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+- 作者：Benson
+- 前端學習者-以成為一名前端工程師為目標!
+- 作品集：[Benson's Portfolio](https://www.notion.so/Front-End-layout-Portfolio-1c4acba779c38053a9dcf4b1caa7af0c)
+- Email：a092468579@gmail.com
+
+---
+
+> 本專案仍持續優化中，歡迎給予建議與指教 🙌

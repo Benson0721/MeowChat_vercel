@@ -1,4 +1,4 @@
-# MeowChat 聊天室（MERN Stack）
+# 🐱MeowChat 聊天室（MERN Stack）
 
 MeowChat 是一個線上多人聊天室，支援群組聊天、私聊、即時邀請與訊息未讀狀態管理，並以 MERN（MongoDB、Express.js、React.js、Node.js）為技術基礎打造。
 
@@ -83,12 +83,19 @@ MeowChat/
 ## 🖼️ 專案畫面截圖
 
 - 首頁
+![首頁展示](./screenshots/index.jpeg)
 
 - 登入頁面
+![登入展示](./screenshots/login.jpeg)
 
 - 聊天室頁面
+![聊天室展示](./screenshots/chat.jpeg)
 
 - 即時邀請與通知 Toast
+![通知展示](./screenshots/toast.jpeg)
+
+- 使用者設定
+![使用者設定展示](./screenshots/profile.jpeg)
 
 ---
 

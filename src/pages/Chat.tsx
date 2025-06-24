@@ -28,14 +28,17 @@ const Chat = () => {
   const currentChat = useChatroomStore((state) => state.currentChat);
   const chatroomsMap = useChatroomStore((state) => state.chatroomsMap);
   const chatroomsOrder = useChatroomStore((state) => state.chatroomsOrder);
-  const messageMap = useMessageStore((state) => state.messageMap);
-  const memberMap = useChatroomMemberStore((state) => state.memberMap);
+  
+
+
 
   // Store actions
+
+
   const { getChatrooms, setCurrentChat, inviteUser, getOneChatroom } =
     useChatroomStore();
 
-  const { getOtherUsers, setOtherUsers } = useUserStore();
+  const { getOtherUsers, setOtherUsers,checkAuth } = useUserStore();
 
   const {
     addChatroomMember,
@@ -47,9 +50,7 @@ const Chat = () => {
 
   const { handleReceiveMessage, handleUpdateMessage } = useMessageStore();
 
-  const messages = useMemo(() => {
-    return [...messageMap.values()];
-  }, [messageMap]);
+
 
   const fetchInitialData = async () => {
     if (!user?._id) return;

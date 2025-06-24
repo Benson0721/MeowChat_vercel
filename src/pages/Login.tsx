@@ -42,7 +42,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-meow-lavender via-meow-cream to-meow-pink flex items-center justify-center p-4">
+    <div className="relative min-h-screen bg-gradient-to-br from-meow-lavender via-meow-cream to-meow-pink flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-white/90 backdrop-blur-sm border-meow-purple/20 shadow-xl">
         <CardHeader className="text-center pb-6">
           <div className="mx-auto w-16 h-16 bg-meow-purple rounded-full flex items-center justify-center mb-4">
@@ -70,7 +70,10 @@ const Login = () => {
             )}
 
             <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium text-purple-900">
+              <label
+                htmlFor="email"
+                className="text-sm font-medium text-purple-900"
+              >
                 Email
               </label>
               <Input
@@ -84,7 +87,10 @@ const Login = () => {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium text-purple-900">
+              <label
+                htmlFor="password"
+                className="text-sm font-medium text-purple-900"
+              >
                 Password
               </label>
               <div className="relative">
@@ -139,6 +145,10 @@ const Login = () => {
           </div>
         </CardContent>
       </Card>
+      <div className="absolute top-4 right-14 bg-white/90 border border-purple-300 p-2 rounded-md">
+        <p className="text-purple-600">測試用帳號: Benson0721@gmail.com</p>
+        <p className="text-purple-600">測試用密碼: 123456789</p>
+      </div>
     </div>
   );
 };

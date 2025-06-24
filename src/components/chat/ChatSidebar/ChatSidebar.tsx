@@ -28,11 +28,11 @@ interface ChatSidebarProps {
   setSidebarCollapsed: (collapsed: boolean) => void;
 }
 
-const USER_STATUS_STYLES = {
+/*const USER_STATUS_STYLES = {
   online: "bg-green-300",
   away: "bg-yellow-300",
   offline: "bg-gray-300",
-} as const;
+} as const;*/
 
 const SIDEBAR_CLASSES = {
   mobile: {
@@ -76,12 +76,12 @@ export function ChatSidebar({
     return collapsed ? baseClasses.collapsed : baseClasses.expanded;
   }, [isMobile, collapsed]);
 
-  const userStatusStyle = useMemo(() => {
+  /* const userStatusStyle = useMemo(() => {
     return (
       USER_STATUS_STYLES[user?.status as keyof typeof USER_STATUS_STYLES] ||
       USER_STATUS_STYLES.offline
     );
-  }, [user?.status]);
+  }, [user?.status]);*/
 
   useEffect(() => {
     if (isMobile) {
@@ -197,7 +197,7 @@ export function ChatSidebar({
             </AvatarFallback>
           </Avatar>
           <div
-            className={`absolute -bottom-0.5 -right-1 w-3 h-3 rounded-full border border-white ${userStatusStyle}`}
+            className={`absolute -bottom-0.5 -right-1 w-3 h-3 rounded-full border border-white bg-green-300`}
             aria-label={`狀態: ${user?.status || "offline"}`}
           />
         </button>

@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Smile } from "lucide-react";
+import { Message } from "@/types/apiType";
 
 const emojis = [
   "😀",
@@ -99,13 +100,19 @@ interface Sticker {
 }
 
 interface EmojiStickerPickerProps {
-  onSelect: (content: string, type: "emoji" | "sticker") => void;
+  onSelect: (
+    content: string,
+    type: "emoji" | "sticker",
+    reply: Message | null
+  ) => void;
   stickers: Sticker[];
+  reply: Message | null;
 }
 
 export function EmojiStickerPicker({
   onSelect,
   stickers,
+  reply,
 }: EmojiStickerPickerProps) {
   const [open, setOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -116,9 +123,12 @@ export function EmojiStickerPicker({
     }
   }, [stickers]);
 
-  const handleSelect = (content: string, type: "emoji" | "sticker") => {
-    onSelect(content, type);
-    setOpen(false);
+  const handleSelect = (
+    content: string,
+    type: "emoji" | "sticker",
+    reply: Message | null
+  ) => {
+    onSelect(content, type, reply);
   };
 
   return (
@@ -151,7 +161,7 @@ export function EmojiStickerPicker({
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0 hover:bg-meow-purple/30 rounded-lg text-lg"
-                  onClick={() => handleSelect(emoji, "emoji")}
+                  onClick={() => handleSelect(emoji, "emoji", reply)}
                 >
                   {emoji}
                 </Button>
@@ -161,14 +171,21 @@ export function EmojiStickerPicker({
 
           <TabsContent value="stickers" className="p-2">
             {stickers?.map((sticker, index) => (
-              <div key={index} className="flex items-center gap-2 rounded-xl overflow-hidden mb-2 ml-2">
+              <div
+                key={index}
+                className="flex items-center gap-2 rounded-xl overflow-hidden mb-2 ml-2"
+              >
                 <Button
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0 hover:bg-meow-purple/30 rounded-lg text-lg"
                   onClick={() => setSelectedCategory(sticker.category)}
                 >
-                  <img src={sticker.thumbnail} alt={sticker.category} className="" />
+                  <img
+                    src={sticker.thumbnail}
+                    alt={sticker.category}
+                    className=""
+                  />
                 </Button>
               </div>
             ))}
@@ -182,9 +199,9 @@ export function EmojiStickerPicker({
                       variant="ghost"
                       size="sm"
                       className="h-20 w-20 p-0 hover:bg-meow-purple/30 rounded-lg text-lg"
-                      onClick={() => handleSelect(image, "sticker")}
+                      onClick={() => handleSelect(image, "sticker", reply)}
                     >
-                      <img src={image}  />
+                      <img src={image} />
                     </Button>
                   ))
               )}

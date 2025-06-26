@@ -44,13 +44,23 @@ export default function LogoutDialog() {
             <DialogDescription>Hope to see you soon!~</DialogDescription>
           </div>
         </DialogHeader>
-        <DialogFooter>
-          <Button variant="destructive" onClick={logoutHandler}>
-            Logout
-          </Button>
-
+        <DialogFooter className="flex gap-2">
           <DialogClose>
-            <Button variant="outline">Cancel</Button>
+            <Button
+              className=" bg-meow-purple hover:bg-meow-purple/80"
+              variant="outline"
+              onClick={logoutHandler}
+            >
+              Logout
+            </Button>
+          </DialogClose>
+          <DialogClose>
+            <Button
+              className=" bg-meow-purple hover:bg-meow-purple/80"
+              variant="outline"
+            >
+              Cancel
+            </Button>
           </DialogClose>
         </DialogFooter>
       </DialogContent>

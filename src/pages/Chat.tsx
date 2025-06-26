@@ -28,17 +28,13 @@ const Chat = () => {
   const currentChat = useChatroomStore((state) => state.currentChat);
   const chatroomsMap = useChatroomStore((state) => state.chatroomsMap);
   const chatroomsOrder = useChatroomStore((state) => state.chatroomsOrder);
-  
-
-
 
   // Store actions
-
 
   const { getChatrooms, setCurrentChat, inviteUser, getOneChatroom } =
     useChatroomStore();
 
-  const { getOtherUsers, setOtherUsers,checkAuth } = useUserStore();
+  const { getOtherUsers, setOtherUsers, checkAuth } = useUserStore();
 
   const {
     addChatroomMember,
@@ -49,8 +45,6 @@ const Chat = () => {
   } = useChatroomMemberStore();
 
   const { handleReceiveMessage, handleUpdateMessage } = useMessageStore();
-
-
 
   const fetchInitialData = async () => {
     if (!user?._id) return;
@@ -163,12 +157,10 @@ const Chat = () => {
 
     const onReceiveMessage = (msg: Message, room_id: string) => {
       const existing = useChatroomStore.getState().chatroomsMap.get(room_id);
-      if (
-        room_id === useChatroomStore.getState().currentChat?._id &&
-        msg.user._id !== user._id
-      ) {
+      const currentChat = useChatroomStore.getState().currentChat;
+      if (room_id === currentChat?._id && msg.user._id !== user._id) {
         handleReceiveMessage(msg);
-        socket.emit("update unread", currentChat._id);
+        socket.emit("update unread", currentChat?._id);
       } else if (!existing) {
         const newChatroom = {
           _id: room_id,
@@ -215,7 +207,15 @@ const Chat = () => {
     };
 
     // 註冊事件監聽器
-   
+
+    setInterval(() => {
+      socket.emit("ping");
+    }, 10000);
+
+    socket.on("reconnect", () => {
+      socket.emit("join room", useChatroomStore.getState().currentChat?._id);
+    });
+
     socket.on("chat message", onReceiveMessage);
     socket.on("update unread", onUpdateUnread);
     socket.on("user-status-online", handleUserOnline);

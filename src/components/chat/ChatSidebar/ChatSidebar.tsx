@@ -58,9 +58,7 @@ export function ChatSidebar({
   const user = useUserStore((state) => state.user);
   const { chatroomsMap, chatroomsOrder, setCurrentChat, currentChat } =
     useChatroomStore();
-  const updateUnreadCount = useChatroomMemberStore(
-    (state) => state.updateUnreadCount
-  );
+
   const { socket } = useContext(SocketContext);
 
   // Local state
@@ -119,45 +117,6 @@ export function ChatSidebar({
     };
   }, [currentChat]);
 
-  /* useEffect(() => {
-    if (!socket) return;
-
-    const onUpdateUnread = (chatroom_id: string) => {
-      updateUnreadCount(user._id, chatroom_id);
-    };
-
-    socket.on("chat message", (msg: Message, room_id: string) => {
-      const existing = useChatroomStore.getState().chatroomsMap.get(room_id);
-      if (!existing) {
-        //第一次收到來自陌生聊天室的訊息
-        const newChatroom = {
-          _id: room_id,
-          members: [msg.user._id, user._id],
-          name: msg.user.username,
-          type: "private",
-          avatar: msg.user.avatar,
-        };
-        const map = new Map(useChatroomStore.getState().chatroomsMap);
-        map.set(newChatroom._id, newChatroom);
-        const newOrder = {
-          ...useChatroomStore.getState().chatroomsOrder,
-          private: [
-            ...useChatroomStore.getState().chatroomsOrder.private,
-            newChatroom._id,
-          ],
-        };
-        useChatroomStore.setState({
-          chatroomsMap: map,
-          chatroomsOrder: newOrder,
-        });
-      }
-    });
-    socket.on("update unread", onUpdateUnread);
-    return () => {
-      socket.off("update unread");
-    };
-  }, [socket, user._id]);
-*/
   const renderUserSection = () => {
     if (collapsed) {
       return (
@@ -225,13 +184,15 @@ export function ChatSidebar({
           variant="ghost"
           size="sm"
           onClick={onToggleCollapsed}
-          className="absolute -right-3 top-6 z-10 h-6 w-6 rounded-full bg-white border border-meow-purple/20 shadow-sm hover:bg-meow-purple/50 transition-colors"
+          className={`absolute ${
+            isMobile ? "right-0" : "-right-3"
+          } top-6 z-10 h-6 w-6 rounded-full bg-white border border-meow-purple/20 shadow-sm hover:bg-meow-purple/50 transition-colors`}
           aria-label={collapsed ? "展開側邊欄" : "收合側邊欄"}
         >
           {collapsed ? (
-            <ChevronRight className="w-3 h-3" />
+            <ChevronRight className="w-6 h-6" />
           ) : (
-            <ChevronLeft className="w-3 h-3" />
+            <ChevronLeft className="w-6 h-6" />
           )}
         </Button>
 

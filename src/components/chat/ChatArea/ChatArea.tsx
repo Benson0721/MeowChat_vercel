@@ -125,7 +125,6 @@ export function ChatArea({
     setReply(() => message);
   };
 
-
   const handleSendMessage = async (
     type: string,
     content: string,
@@ -147,16 +146,17 @@ export function ChatArea({
     }
   };
 
-  const handleEmojiStickerSelect = useCallback(
-    (content: string, type: "emoji" | "sticker") => {
-      if (type === "emoji") {
-        setInput((prev) => prev + content);
-      } else {
-        handleSendMessage("sticker", content);
-      }
-    },
-    []
-  );
+  const handleEmojiStickerSelect = (
+    content: string,
+    type: "emoji" | "sticker",
+    reply?: Message
+  ) => {
+    if (type === "emoji") {
+      setInput((prev) => prev + content);
+    } else {
+      handleSendMessage("sticker", content, reply);
+    }
+  };
 
   const handleRecallMessage = async (messageId: string) => {
     if (!socket) return;
@@ -308,6 +308,7 @@ export function ChatArea({
             <EmojiStickerPicker
               onSelect={handleEmojiStickerSelect}
               stickers={stickers}
+              reply={reply}
             />
 
             <Button

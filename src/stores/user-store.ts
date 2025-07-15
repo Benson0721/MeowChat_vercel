@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { User } from "../types/apiType";
 import {
-  getOtherUsers,
+  getOtherUsersAPI,
   editUser,
   logout,
   login,
@@ -19,7 +19,7 @@ type Store = {
 };
 
 type Action = {
-  setOtherUsers: (users: Map<string, User>) => void;
+  setOtherUsers: (users: User[]) => void;
   checkAuth: () => void;
   getOtherUsers: (user_id: string) => Promise<void>;
   editUser: (user: User) => Promise<void>;
@@ -59,14 +59,16 @@ const useUserStore = create<Store & Action>()(
         }
       },
 
-      setOtherUsers: (users: Map<string, User>) => {
-        const OnlineUsers = Array.from(users.values()).filter(
-          (user) => user.status !== "offline"
+      setOtherUsers: (users: User[]) => {
+        const usersArray = Array.from(users.values());
+        const OnlineUsers = usersArray.filter(
+          (user) => user.status === "online"
         );
-        const OfflineUsers = Array.from(users.values()).filter(
+        const AwayUsers = usersArray.filter((user) => user.status === "away");
+        const OfflineUsers = usersArray.filter(
           (user) => user.status === "offline"
         );
-        const sortedUsers = [...OnlineUsers, ...OfflineUsers];
+        const sortedUsers = [...OnlineUsers, ...AwayUsers, ...OfflineUsers];
         set({
           otherUsersMap: new Map(sortedUsers.map((user) => [user._id, user])),
           otherUsersOrder: sortedUsers.map((user) => user._id),
@@ -74,17 +76,8 @@ const useUserStore = create<Store & Action>()(
       },
       getOtherUsers: async (user_id: string) => {
         try {
-          const users = await getOtherUsers(user_id);
-          const OnlineUsers = users.filter((user) => user.status !== "offline");
-          const OfflineUsers = users.filter(
-            (user) => user.status === "offline"
-          );
-          const sortedUsers = [...OnlineUsers, ...OfflineUsers];
-
-          set({
-            otherUsersMap: new Map(sortedUsers.map((user) => [user._id, user])),
-            otherUsersOrder: sortedUsers.map((user) => user._id),
-          });
+          const users = await getOtherUsersAPI(user_id);
+          useUserStore.getState().setOtherUsers(users);
         } catch (error) {
           console.error("取得其他使用者失敗:", error);
         }

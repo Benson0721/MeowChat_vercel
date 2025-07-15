@@ -108,13 +108,10 @@ const Chat = () => {
 
   const statusHandler = (userId: string, status: string) => {
     const otherUser = useUserStore.getState().otherUsersMap; //在觸發func時才拿otherUsersMap，避免拿到舊資料
-    if (otherUser.has(userId)) {
-      const newOtherUsers = new Map(otherUser);
-      const user = newOtherUsers.get(userId);
-      user.status = status as "online" | "away" | "offline";
-      newOtherUsers.set(userId, user);
-      setOtherUsers(newOtherUsers);
-    }
+    const newOtherUsers = new Map(otherUser);
+    newOtherUsers.get(userId).status = status as "online" | "away" | "offline";
+    const usersArray = Array.from(newOtherUsers.values());
+    setOtherUsers(usersArray);
   };
 
   const initializeChat = (currentChat?: Chatroom) => {
@@ -276,6 +273,7 @@ const Chat = () => {
   useEffect(() => {
     if (!socket) return;
     const cleanup = setupSocketListeners();
+    socket.emit("user online");
 
     return () => {
       cleanup?.();

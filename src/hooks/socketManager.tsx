@@ -17,6 +17,7 @@ export const SocketProvider = ({ children }) => {
           query: { userId },
         })
       );
+      console.log("socket connected");
     }
     return socket;
   }

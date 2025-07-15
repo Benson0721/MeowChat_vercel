@@ -1,7 +1,7 @@
 import { User } from "../../types/apiType";
 import { axiosInstance } from "./axios-config";
 
-export const getOtherUsers = async (user_id: string): Promise<User[]> => {
+export const getOtherUsersAPI = async (user_id: string): Promise<User[]> => {
   const res = await axiosInstance.get(`/api/user`, {
     params: {
       user_id,

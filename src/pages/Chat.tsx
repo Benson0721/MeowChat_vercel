@@ -78,7 +78,7 @@ const Chat = () => {
     try {
       await inviteUserToChatroom(invitedUserId, chatroom._id);
       await addChatroomMember(invitedUserId, chatroom._id);
-      socket.emit("invite accepted", chatroom, invitedUserId);
+      socket.emit("invite accepted", chatroom);
       toast.success("Joined group successfully 🎉");
     } catch (err) {
       console.error("Join failed:", err);
@@ -86,15 +86,11 @@ const Chat = () => {
     }
   };
 
-  const syncGroupAfterInvite = async (
-    chatroom: Chatroom,
-    invitedUserId: string
-  ) => {
-    if (!user || invitedUserId === user._id) return;
-
-    const isInGroup = chatroomsOrder.group.includes(chatroom._id);
+  const syncGroupAfterInvite = async (chatroom: Chatroom) => {
+    const isInGroup = useChatroomStore
+      .getState()
+      .chatroomsOrder.group.includes(chatroom._id);
     if (!isInGroup) return;
-
     try {
       await Promise.all([
         getOneChatroom(chatroom._id),

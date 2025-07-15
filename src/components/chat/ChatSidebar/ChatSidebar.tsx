@@ -28,11 +28,7 @@ interface ChatSidebarProps {
   setSidebarCollapsed: (collapsed: boolean) => void;
 }
 
-/*const USER_STATUS_STYLES = {
-  online: "bg-green-300",
-  away: "bg-yellow-300",
-  offline: "bg-gray-300",
-} as const;*/
+
 
 const SIDEBAR_CLASSES = {
   mobile: {

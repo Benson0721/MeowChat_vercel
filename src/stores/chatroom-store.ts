@@ -3,7 +3,7 @@ import { Chatroom } from "../types/apiType";
 import {
   getChatrooms,
   createChatroom,
-  inviteUser,
+  inviteUserToChatroom,
   getOneChatroom,
 } from "../lib/api/chatroom-api";
 import useChatroomMemberStore from "./chatroom-member-store";
@@ -30,7 +30,7 @@ type Action = {
     name: string
   ) => Promise<void>;
   setCurrentChat: (chatroom: Chatroom) => void;
-  inviteUser: (user_id: string, chatroom_id: string) => Promise<void>;
+  inviteUserToChatroom: (user_id: string, chatroom_id: string) => Promise<void>;
 };
 
 const useChatroomStore = create<Store & Action>()((set, get) => ({
@@ -130,9 +130,9 @@ const useChatroomStore = create<Store & Action>()((set, get) => ({
       console.error("建立聊天室失敗:", error);
     }
   },
-  inviteUser: async (user_id: string, chatroom_id: string) => {
+  inviteUserToChatroom: async (user_id: string, chatroom_id: string) => {
     try {
-      const updatedChatroom = await inviteUser(chatroom_id, user_id);
+      const updatedChatroom = await inviteUserToChatroom(chatroom_id, user_id);
       const newMap = new Map(get().chatroomsMap);
       newMap.set(updatedChatroom._id, updatedChatroom);
       set({

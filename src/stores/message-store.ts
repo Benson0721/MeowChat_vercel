@@ -24,7 +24,7 @@ type Action = {
   ) => Promise<Message>;
   recallMessage: (message_id: string) => Promise<void>;
   handleReceiveMessage: (message: Message) => void;
-  handleUpdateMessage: (message_id: string) => void;
+  handleRecallMessage: (message_id: string) => void;
   getDatedMessage: (messages: Message[]) => void;
 };
 
@@ -58,7 +58,7 @@ const useMessageStore = create<Store & Action>((set, get) => ({
     });
     get().getDatedMessage([...get().messageMap.values()]);
   },
-  handleUpdateMessage: (message_id: string) => {
+  handleRecallMessage: (message_id: string) => {
     const newMessageMap = new Map(get().messageMap);
     newMessageMap.set(message_id, {
       ...get().messageMap.get(message_id),
@@ -104,7 +104,7 @@ const useMessageStore = create<Store & Action>((set, get) => ({
   recallMessage: async (message_id: string) => {
     try {
       await recallMessage(message_id);
-      get().handleUpdateMessage(message_id);
+      get().handleRecallMessage(message_id);
     } catch (error) {
       console.error("撤回訊息失敗:", error);
     }

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Users, MoreVertical, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { Chatroom, User } from "@/types/apiType";
 
 interface ChatHeaderProps {

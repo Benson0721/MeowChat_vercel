@@ -51,7 +51,7 @@ export function ChatMessage({
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col mt-2">
       {message?.reply_to && (
         <p
           className={cn(

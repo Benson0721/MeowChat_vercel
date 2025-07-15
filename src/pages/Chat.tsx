@@ -31,10 +31,10 @@ const Chat = () => {
 
   // Store actions
 
-  const { getChatrooms, setCurrentChat, inviteUser, getOneChatroom } =
+  const { getChatrooms, setCurrentChat, inviteUserToChatroom, getOneChatroom } =
     useChatroomStore();
 
-  const { getOtherUsers, setOtherUsers, checkAuth } = useUserStore();
+  const { getOtherUsers, setOtherUsers } = useUserStore();
 
   const {
     addChatroomMember,
@@ -44,7 +44,7 @@ const Chat = () => {
     updateUnreadCount,
   } = useChatroomMemberStore();
 
-  const { handleReceiveMessage, handleUpdateMessage } = useMessageStore();
+  const { handleReceiveMessage, handleRecallMessage } = useMessageStore();
 
   const fetchInitialData = async () => {
     if (!user?._id) return;
@@ -61,35 +61,48 @@ const Chat = () => {
     setUiState((prev) => ({ ...prev, ...updates }));
   }, []);
 
-  const receiveInviteHandler = async (
-    chatroom_id: string,
-    targetUser_id: string
+  const joinGroupAsInvitedUser = async (
+    chatroom: Chatroom,
+    invitedUserId: string
   ) => {
     if (!socket) return;
+
+    const isAlreadyInGroup = useChatroomStore
+      .getState()
+      .chatroomsOrder.group.includes(chatroom._id);
+    if (isAlreadyInGroup) {
+      toast.error("You're already in this group.");
+      return;
+    }
+
     try {
-      await inviteUser(targetUser_id, chatroom_id);
-      await addChatroomMember(targetUser_id, chatroom_id);
-      socket.emit("invite accepted", chatroom_id, targetUser_id);
-      toast.success("已加入群組 🎉");
-    } catch (error) {
-      console.error("Failed to send invite:", error);
-      toast.error("邀請失敗，請重試");
+      await inviteUserToChatroom(invitedUserId, chatroom._id);
+      await addChatroomMember(invitedUserId, chatroom._id);
+      socket.emit("invite accepted", chatroom, invitedUserId);
+      toast.success("Joined group successfully 🎉");
+    } catch (err) {
+      console.error("Join failed:", err);
+      toast.error("Failed to join group, try again.");
     }
   };
 
-  const acceptInviteHandler = async (
-    chatroom_id: string,
-    targetUser_id: string
+  const syncGroupAfterInvite = async (
+    chatroom: Chatroom,
+    invitedUserId: string
   ) => {
-    if (!user || targetUser_id === user?._id) return;
+    if (!user || invitedUserId === user._id) return;
+
+    const isInGroup = chatroomsOrder.group.includes(chatroom._id);
+    if (!isInGroup) return;
+
     try {
       await Promise.all([
-        getOneChatroom(chatroom_id),
+        getOneChatroom(chatroom._id),
         getChatroomMember(user._id),
       ]);
-    } catch (error) {
-      console.error("Failed to accept invite:", error);
-      toast.error("加入群組失敗");
+    } catch (err) {
+      console.error("Sync failed:", err);
+      toast.error("Failed to update group info.");
     }
   };
 
@@ -104,26 +117,15 @@ const Chat = () => {
     }
   };
 
-  useEffect(() => {
-    if (!currentChat) return;
-    setIsGroupChat(currentChat.type === "group");
-  }, [currentChat]);
-
-  const initializeChat = () => {
+  const initializeChat = (currentChat?: Chatroom) => {
     const firstChatroom = chatroomsMap?.get(chatroomsOrder?.global[0]);
-    if (firstChatroom) {
-      setCurrentChat(firstChatroom);
+    if (currentChat || firstChatroom) {
+      setCurrentChat(currentChat || firstChatroom);
     }
   };
 
   const setupSocketListeners = () => {
     if (!socket || !user) return;
-
-    const handleUserOnline = (userId: string) =>
-      statusHandler(userId, "online");
-    const handleUserAway = (userId: string) => statusHandler(userId, "away");
-    const handleUserOffline = (userId: string) =>
-      statusHandler(userId, "offline");
 
     const handleGroupInvite = (
       chatroom: Chatroom,
@@ -138,7 +140,7 @@ const Chat = () => {
             chatroom={chatroom}
             sender={sender}
             onAccept={() => {
-              receiveInviteHandler(chatroom._id, targetUser_id);
+              joinGroupAsInvitedUser(chatroom, targetUser_id);
               toast.dismiss(t);
             }}
             onReject={() => toast.dismiss(t)}
@@ -146,13 +148,6 @@ const Chat = () => {
         ),
         { duration: TOAST_DURATION }
       );
-    };
-
-    const handleInviteAccepted = (
-      chatroom_id: string,
-      targetUser_id: string
-    ) => {
-      acceptInviteHandler(chatroom_id, targetUser_id);
     };
 
     const onReceiveMessage = (msg: Message, room_id: string) => {
@@ -185,9 +180,9 @@ const Chat = () => {
       }
     };
 
-    const onUpdateMessage = (message_id: string, user_id: string) => {
+    const onRecallMessage = (message_id: string, user_id: string) => {
       if (user_id !== user._id) {
-        handleUpdateMessage(message_id);
+        handleRecallMessage(message_id);
       }
     };
 
@@ -206,38 +201,45 @@ const Chat = () => {
       updateReadCount(messages, chatroom);
     };
 
+    /*const onHandleReconnect = () => {
+      console.log("reconnect");
+      syncOnReconnect();
+    };
+
+    const syncOnReconnect = async () => {
+      if (!socket) return;
+      await fetchInitialData();
+      initializeChat(currentChat);
+    }*/
     // 註冊事件監聽器
 
     setInterval(() => {
       socket.emit("ping");
     }, 10000);
 
-    socket.on("reconnect", () => {
-      socket.emit("join room", useChatroomStore.getState().currentChat?._id);
-    });
-
     socket.on("chat message", onReceiveMessage);
     socket.on("update unread", onUpdateUnread);
-    socket.on("user-status-online", handleUserOnline);
-    socket.on("user-status-away", handleUserAway);
-    socket.on("user-status-offline", handleUserOffline);
+    socket.on("user-status-online", statusHandler);
+    socket.on("user-status-away", statusHandler);
+    socket.on("user-status-offline", statusHandler);
     socket.on("send group invite", handleGroupInvite);
-    socket.on("invite accepted", handleInviteAccepted);
-    socket.on("update message", onUpdateMessage);
+    socket.on("invite accepted", syncGroupAfterInvite);
+    socket.on("update message", onRecallMessage);
     socket.on("update last_read_time", onUpdateLastReadTime);
     socket.on("update read count", onUpdateReadCount);
+    //socket.on("reconnect",onHandleReconnect);//目前還用不到
 
     // 返回清理函數
     return () => {
       socket.off("chat message", onReceiveMessage);
       socket.off("update unread", onUpdateUnread);
-      socket.off("update message", onUpdateMessage);
+      socket.off("update message", onRecallMessage);
       socket.off("update last_read_time", onUpdateLastReadTime);
-      socket.off("user-status-online", handleUserOnline);
-      socket.off("user-status-away", handleUserAway);
-      socket.off("user-status-offline", handleUserOffline);
+      socket.off("user-status-online", statusHandler);
+      socket.off("user-status-away", statusHandler);
+      socket.off("user-status-offline", statusHandler);
       socket.off("send group invite", handleGroupInvite);
-      socket.off("invite accepted", handleInviteAccepted);
+      socket.off("invite accepted", joinGroupAsInvitedUser);
       socket.off("update read count", onUpdateReadCount);
     };
   };
@@ -258,6 +260,11 @@ const Chat = () => {
   }, []);
 
   useEffect(() => {
+    if (!currentChat) return;
+    setIsGroupChat(currentChat.type === "group");
+  }, [currentChat]);
+
+  useEffect(() => {
     if (!user?._id) return;
     connectSocket(user._id);
 
@@ -274,18 +281,6 @@ const Chat = () => {
       cleanup?.();
     };
   }, [socket]);
-
-  /*useEffect(() => {
-    if (
-      !currentChat ||
-      messageMap.size === 0 ||
-      memberMap.get(currentChat._id)?.length === 0 ||
-      !socket
-    )
-      return;
-
-    updateReadCount(messages, currentChat);
-  }, [currentChat, messageMap.size]);*/
 
   return (
     <SidebarProvider>
@@ -333,39 +328,3 @@ const Chat = () => {
 };
 
 export default Chat;
-{
-  /*<div className="p-4 bg-white rounded shadow flex flex-col gap-2 w-[300px]">
-  <div className="flex items-center gap-2">
-    <Avatar className="w-6 h-6">
-      <AvatarImage src={sender.avatar} />
-      <AvatarFallback className="bg-meow-purple text-purple-800">
-        {sender.username}
-      </AvatarFallback>
-    </Avatar>
-    <span className="text-xs text-gray-500">
-      invite you to join
-    </span>
-    <span className="text-xs text-gray-500">
-      {chatroom.avatar}
-      <strong>{chatroom.name}</strong>
-    </span>
-  </div>
-  <div className="flex justify-end gap-2">
-    <Button
-      className="text-xs px-2 bg-blue-500 text-white rounded"
-      onClick={() => {
-        receiveInviteHandler(chatroom._id, targetUser_id);
-        toast.dismiss(t);
-      }}
-    >
-      <Check />
-    </Button>
-    <Button
-      className="text-xs px-2 bg-gray-200 rounded"
-      onClick={() => toast.dismiss(t)}
-    >
-      <X />
-    </Button>
-  </div>
-</div>*/
-}

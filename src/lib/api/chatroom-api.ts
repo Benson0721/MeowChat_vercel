@@ -29,7 +29,10 @@ export const createChatroom = async ({
   return chatroom.data;
 };
 
-export const inviteUser = async (chatroom_id: string, user_id: string) => {
+export const inviteUserToChatroom = async (
+  chatroom_id: string,
+  user_id: string
+) => {
   const chatroom = await axiosInstance.patch("/api/chatroom", {
     chatroom_id,
     user_id,
@@ -41,12 +44,3 @@ export const getOneChatroom = async (chatroom_id: string) => {
   const chatroom = await axiosInstance.get(`/api/chatroom/${chatroom_id}`);
   return chatroom.data;
 };
-
-/*export const getReadCount = async (message_id: string) => {
-  const res = await axiosInstance.get(`/api/message/readcount`, {
-    params: {
-      message_id,
-    },
-  });
-  return res.data;
-};*/

@@ -24,7 +24,30 @@ const Login = () => {
     handleSubmit,
     formState: { errors },
   } = useForm<Inputs>();
+
+  const validation = {
+    email: {
+      required: { value: true, message: "Email is required" },
+      pattern: {
+        value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+        message: "Please enter a valid email address",
+      },
+    },
+    password: {
+      required: { value: true, message: "Password is required" },
+      minLength: {
+        value: 6,
+        message: "Password must be at least 6 characters long",
+      },
+      maxLength: {
+        value: 12,
+        message: "Password must be at most 12 characters long",
+      },
+    },
+  };
+
   const handleLogin: SubmitHandler<Inputs> = async (data: Inputs) => {
+    console.log(data);
     setError("");
     setIsLoading(true);
     try {
@@ -32,9 +55,9 @@ const Login = () => {
       navigate("/chat");
     } catch (error) {
       if (error.response.status === 401) {
-        setError("email or password is incorrect");
+        setError("Email or password is incorrect");
       } else {
-        setError("login failed");
+        setError("Login failed");
       }
     } finally {
       setIsLoading(false);
@@ -63,11 +86,6 @@ const Login = () => {
                 </AlertDescription>
               </Alert>
             )}
-            {errors.email && (
-              <p role="alert" className="text-red-300 text-sm">
-                {errors.email.message}
-              </p>
-            )}
 
             <div className="space-y-2">
               <label
@@ -79,11 +97,16 @@ const Login = () => {
               <Input
                 id="email"
                 type="text"
-                {...register("email", { required: true })}
+                {...register("email", validation.email)}
                 placeholder="Enter your email"
                 className="border-meow-purple/30 focus-visible:ring-purple-300"
                 disabled={isLoading}
               />
+              {errors.email && (
+                <p role="alert" className="text-red-300 text-sm mt-2">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -97,13 +120,13 @@ const Login = () => {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  {...register("password", { required: true })}
+                  {...register("password", validation.password)}
                   placeholder="Enter your password"
                   className="border-meow-purple/30 focus-visible:ring-purple-300 pr-10"
                   disabled={isLoading}
                 />
                 {errors.password && (
-                  <p role="alert" className="text-red-300 text-sm">
+                  <p role="alert" className="text-red-300 text-sm mt-2">
                     {errors.password.message}
                   </p>
                 )}

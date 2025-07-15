@@ -48,10 +48,8 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Hero Section */}
       <main className="container mx-auto px-6 py-16 text-center">
         <div className="max-w-4xl mx-auto">
-          {/* Main Heading */}
           <div className="mb-8">
             <h2 className="text-5xl md:text-6xl font-fredoka font-bold text-purple-900 mb-4">
               Purr-fect
@@ -67,7 +65,6 @@ const Index = () => {
             </p>
           </div>
 
-          {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
             <Link to={`/${isLogin ? "chat" : "login"}`}>
               <Button
@@ -138,7 +135,6 @@ const Index = () => {
             </Card>
           </div>
 
-          {/* Chat Bubble Illustration */}
           <div className="relative max-w-md mx-auto">
             <div className="flex flex-col gap-4">
               <div className="chat-bubble chat-bubble-other animate-bounce-gentle ml-8">

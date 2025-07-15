@@ -22,6 +22,7 @@ import dayjs from "dayjs";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ChatHeader } from "./ChatHeader";
 import { ReplyPreview } from "./ReplyPreview";
+import { toast } from "@/components/ui/sonner";
 
 interface ChatAreaProps {
   onToggleUserPanel: () => void;
@@ -124,14 +125,15 @@ export function ChatArea({
   const handleReply = (message: Message) => {
     setReply(() => message);
   };
-
   const handleSendMessage = async (
     type: string,
     content: string,
     reply?: Message
   ) => {
-    if (content.trim()) {
-      let room_id = useChatroomStore.getState().currentChat?._id;
+    if (!content.trim()) return;
+
+    try {
+      const room_id = useChatroomStore.getState().currentChat?._id;
       const newMessage = await sendMessage(
         room_id,
         user?._id,
@@ -140,9 +142,24 @@ export function ChatArea({
         reply?._id
       );
       if (!socket) return;
-      socket.emit("chat message", newMessage, room_id);
+
+      // 處理 socket.io 回傳的後端錯誤（非 try-catch 可攔截）
+      socket.emit(
+        "chat message",
+        newMessage,
+        room_id,
+        (res: { status: string; error?: string }) => {
+          if (res.status === "error") {
+            toast.error(res.error || "Unknown socket error");
+          }
+        }
+      );
+
       setInput("");
       setReply(null);
+    } catch (error) {
+      console.error("Failed to send message:", error);
+      toast.error("Failed to send message, please try again.");
     }
   };
 
